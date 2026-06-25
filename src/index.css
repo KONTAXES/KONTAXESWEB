@@ -122,8 +122,8 @@
 .border-glow { animation: borderGlow 3s ease-in-out infinite; }
 
 /* ── Logo theme switching ── */
-html.dark  .logo-img { filter: brightness(0) invert(1); }
-html:not(.dark) .logo-img { filter: brightness(0); }
+html.dark      .logo-light { display: none; }
+html:not(.dark) .logo-dark  { display: none; }
 
 /* ── 3D icon float animation (uses CSS `translate` so it
       composes with the JS perspective/rotate transform)  ── */

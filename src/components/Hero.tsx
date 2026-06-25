@@ -115,7 +115,8 @@ export function Hero() {
       <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
         {/* Logo */}
         <div className="flex justify-center mb-8 animate-fade-in">
-          <img src="/K_V4-2.png" alt="KONTAXES" className="logo-img h-20 w-auto drop-shadow-[0_0_40px_rgba(147,51,234,0.55)]" />
+          <img src="/K_white.png" alt="KONTAXES" className="logo-dark h-20 w-auto drop-shadow-[0_0_40px_rgba(147,51,234,0.55)]" />
+          <img src="/K_black.png" alt="KONTAXES" className="logo-light h-20 w-auto" />
         </div>
 
         {/* Title */}

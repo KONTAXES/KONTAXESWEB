@@ -40,7 +40,8 @@ export function Navigation({ isDark, toggleTheme }: NavigationProps) {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <a href="#" className="flex-shrink-0">
-            <img src="/K_V4-2.png" alt="KONTAXES" className="logo-img h-10 w-auto" />
+            <img src="/K_white.png" alt="KONTAXES" className="logo-dark h-10 w-auto" />
+            <img src="/K_black.png" alt="KONTAXES" className="logo-light h-10 w-auto" />
           </a>
 
           {/* Desktop Menu */}
