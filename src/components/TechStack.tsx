@@ -929,40 +929,7 @@ export function TechStack() {
           </div>
         </div>
 
-        {/* ── Animated Simulations ── */}
-        <div className="reveal">
-          <div className="text-center mb-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Ver en acción</p>
-            <h3 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Así trabajan nuestras herramientas
-            </h3>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            {sims.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setActiveSim(s.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                  activeSim === s.id
-                    ? `bg-gradient-to-r ${s.color} text-white shadow-lg ${s.shadow} scale-105`
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <s.icon size={15} />
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-white/3 rounded-2xl border border-white/8 p-6 md:p-8 min-h-72">
-            {activeSim === 'odoo'      && <OdooSim     key="odoo" />}
-            {activeSim === 'claude'    && <ClaudeSim   key="claude" />}
-            {activeSim === 'ktx'       && <KtxSim      key="ktx" />}
-            {activeSim === 'finanzIA'  && <FinanzIASim key="finanzIA" />}
-            {activeSim === 'felsimple' && <FelSim      key="felsimple" />}
-          </div>
-        </div>
+        {/* ── Animated Simulations ── (desactivado temporalmente) */}
 
       </div>
     </section>
