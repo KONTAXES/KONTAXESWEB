@@ -16,8 +16,11 @@ export function AppPromo() {
 
   return (
     <section className="py-24 relative overflow-hidden bg-gray-950">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/15 via-transparent to-violet-600/10 pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-purple-600/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-violet-600/8 pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none grid-bg opacity-30" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-purple-600/8 rounded-full blur-3xl pointer-events-none orb-float-slow" />
+      <div className="absolute bottom-0 right-20 w-56 h-56 bg-violet-600/8 rounded-full blur-3xl pointer-events-none orb-float" />
+      <div className="absolute top-1/2 left-10 w-40 h-40 bg-purple-700/6 rounded-full blur-2xl pointer-events-none orb-float-reverse" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-12 reveal">

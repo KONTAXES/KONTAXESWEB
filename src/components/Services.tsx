@@ -19,8 +19,11 @@ export function Services() {
 
   return (
     <section id="servicios" className="py-24 bg-gray-950 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 pointer-events-none grid-bg opacity-40" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/5 rounded-full blur-3xl pointer-events-none orb-float-slow" />
+      <div className="absolute bottom-10 left-10 w-64 h-64 bg-violet-600/6 rounded-full blur-3xl pointer-events-none orb-float" />
+      <div className="absolute top-20 right-10 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl pointer-events-none orb-float-reverse" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-16 reveal">

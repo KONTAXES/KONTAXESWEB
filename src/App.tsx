@@ -33,8 +33,8 @@ export function App() {
     <div className="min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300">
       <Navigation isDark={isDark} toggleTheme={toggleTheme} />
       <Hero />
-      <TechStack />
       <Services />
+      <TechStack />
       <QuotationCalculator />
       <Tools />
       <AppPromo />

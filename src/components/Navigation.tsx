@@ -22,12 +22,12 @@ export function Navigation({ isDark, toggleTheme }: NavigationProps) {
   };
 
   const menuItems = [
-    { label: 'Tecnología', id: 'techstack' },
     { label: 'Servicios', id: 'servicios' },
-    { label: 'Cotizador', id: 'cotizador' },
     { label: 'Herramientas', id: 'herramientas' },
+    { label: 'Cotizador', id: 'cotizador' },
     { label: 'Equipo', id: 'equipo' },
     { label: 'Clientes', id: 'clientes' },
+    { label: 'Próximamente', id: 'proximamente' },
   ];
 
   return (

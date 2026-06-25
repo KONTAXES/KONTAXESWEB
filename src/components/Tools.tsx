@@ -115,7 +115,7 @@ export function Tools() {
   };
 
   return (
-    <section id="herramientas" className="py-24 bg-gray-950 relative">
+    <section id="odoo-demo" className="py-24 bg-gray-950 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/10 to-transparent pointer-events-none" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
 
