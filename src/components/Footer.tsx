@@ -5,8 +5,11 @@ export function Footer() {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <footer className="bg-gray-950 border-t border-white/5 pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="bg-gray-950 border-t border-white/5 pt-16 pb-8 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none grid-bg opacity-15" />
+      <div className="absolute -top-20 left-1/4 w-80 h-80 bg-purple-900/5 rounded-full blur-3xl pointer-events-none orb-float-slow" />
+      <div className="absolute -top-10 right-1/3 w-60 h-60 bg-violet-900/5 rounded-full blur-3xl pointer-events-none orb-float-reverse" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">

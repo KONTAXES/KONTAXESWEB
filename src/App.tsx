@@ -28,7 +28,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300">
+    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-gray-950 text-gray-100' : 'bg-slate-50 text-slate-900'}`}>
       <Navigation isDark={isDark} toggleTheme={toggleTheme} />
       <Hero />
       <Services />

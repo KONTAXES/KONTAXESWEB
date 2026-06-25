@@ -12,7 +12,11 @@ export function ComingSoon() {
   return (
     <section id="proximamente" className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-950 via-purple-900/80 to-gray-950" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none grid-bg opacity-15" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none orb-float-slow" />
+      <div className="absolute top-10 left-10 w-64 h-64 bg-violet-500/8 rounded-full blur-3xl pointer-events-none orb-float" />
+      <div className="absolute bottom-10 right-10 w-56 h-56 bg-pink-600/6 rounded-full blur-3xl pointer-events-none orb-float-reverse" />
+      <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-purple-400/8 rounded-full blur-2xl pointer-events-none orb-float" style={{ animationDelay: '4s' }} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16 reveal">

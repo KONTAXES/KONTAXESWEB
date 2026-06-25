@@ -60,7 +60,10 @@ const team = [
 export function Team() {
   return (
     <section id="equipo" className="py-24 bg-gray-950 relative overflow-hidden">
-      <div className="absolute bottom-0 left-0 w-[600px] h-[400px] bg-purple-900/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none grid-bg opacity-20" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[400px] bg-purple-900/8 rounded-full blur-3xl pointer-events-none orb-float-slow" />
+      <div className="absolute top-16 right-0 w-80 h-80 bg-violet-900/6 rounded-full blur-3xl pointer-events-none orb-float-reverse" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-900/4 rounded-full blur-3xl pointer-events-none orb-float" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-16 reveal">
           <span className="inline-block text-xs font-bold tracking-widest uppercase text-purple-400 mb-3">Nuestro Equipo</span>
