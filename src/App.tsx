@@ -7,7 +7,6 @@ import { QuotationCalculator } from './components/QuotationCalculator';
 import { Team } from './components/Team';
 import { Clients } from './components/Clients';
 import { ComingSoon } from './components/ComingSoon';
-import { AppPromo } from './components/AppPromo';
 import { Footer } from './components/Footer';
 import { TechStack } from './components/TechStack';
 
@@ -35,7 +34,6 @@ export function App() {
       <Services />
       <TechStack />
       <QuotationCalculator />
-      <AppPromo />
       <Team />
       <Clients />
       <ComingSoon />
