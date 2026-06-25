@@ -407,7 +407,7 @@ function KtxSim() {
   const flow = [
     { id: 0, icon: '🔎', label: 'Validando NIT', detail: '5839201-K', color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
     { id: 1, icon: '📋', label: 'Consulta RTU-SAT', detail: 'Contribuyente activo', color: 'text-teal-400 bg-teal-500/10 border-teal-500/20' },
-    { id: 2, icon: '🔗', label: 'Conectando certificador', detail: 'INFILE S.A.', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    { id: 2, icon: '🔗', label: 'Conectando certificador', detail: 'CORPOSISTEMAS, S. A.', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
     { id: 3, icon: '✍️', label: 'Firmando documento', detail: 'Firma electrónica', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
     { id: 4, icon: '🛡️', label: 'FEL certificada', detail: 'UUID generado', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   ];
@@ -435,7 +435,7 @@ function KtxSim() {
         <div className="space-y-1">
           <p className={`transition-colors duration-500 ${step >= 0 ? 'text-sky-300' : 'text-gray-700'}`}>&lt;dte:DTE&gt;</p>
           <p className={`pl-4 transition-colors duration-500 ${step >= 1 ? 'text-teal-300' : 'text-gray-700'}`}>&lt;NIT&gt;5839201-K&lt;/NIT&gt; <span className={step >= 1 ? 'text-emerald-400' : 'text-gray-700'}>✓ RTU válido</span></p>
-          <p className={`pl-4 transition-colors duration-500 ${step >= 2 ? 'text-purple-300' : 'text-gray-700'}`}>&lt;Certificador&gt;INFILE&lt;/Certificador&gt;</p>
+          <p className={`pl-4 transition-colors duration-500 ${step >= 2 ? 'text-purple-300' : 'text-gray-700'}`}>&lt;Certificador&gt;CORPOSISTEMAS&lt;/Certificador&gt;</p>
           <p className={`pl-4 transition-colors duration-500 ${step >= 3 ? 'text-violet-300' : 'text-gray-700'}`}>&lt;FirmaElectronica&gt;MIGf...&lt;/FirmaElectronica&gt;</p>
           <p className={`pl-4 transition-colors duration-500 ${step >= 4 ? 'text-emerald-300 font-bold' : 'text-gray-700'}`}>&lt;UUID&gt;{step >= 4 ? 'A4F9-2B3C-E158-9D20' : '…generando…'}&lt;/UUID&gt;</p>
           <p className={`transition-colors duration-500 ${step >= 4 ? 'text-sky-300' : 'text-gray-700'}`}>&lt;/dte:DTE&gt;</p>
