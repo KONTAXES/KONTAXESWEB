@@ -113,12 +113,6 @@ export function Hero() {
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-300 text-sm font-medium mb-8 animate-fade-in">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Contabilidad profesional para Guatemala · Odoo 19
-        </div>
-
         {/* Logo */}
         <div className="flex justify-center mb-8 animate-fade-in">
           <img src="/K_V4-2.png" alt="KONTAXES" className="h-20 w-auto drop-shadow-[0_0_40px_rgba(147,51,234,0.55)]" />
@@ -145,21 +139,6 @@ export function Hero() {
           </span>
         </p>
 
-        {/* CTAs */}
-        <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-in">
-          <a href="https://app.kontaxes.com" target="_blank" rel="noopener noreferrer"
-            className="px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-400 hover:to-teal-400 transition-all duration-300 shadow-lg hover:-translate-y-0.5 hover:shadow-emerald-500/25">
-            Acceder a la APP
-          </a>
-          <a href="#servicios"
-            className="px-8 py-3.5 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-xl hover:from-purple-500 hover:to-violet-500 transition-all duration-300 shadow-lg hover:-translate-y-0.5 hover:shadow-purple-500/25">
-            Ver Servicios
-          </a>
-          <a href="https://odoo.kontaxes.com" target="_blank" rel="noopener noreferrer"
-            className="px-8 py-3.5 bg-white/5 border border-white/12 text-white font-semibold rounded-xl hover:bg-white/10 hover:border-purple-400/35 transition-all duration-300">
-            Ir a Odoo
-          </a>
-        </div>
       </div>
 
       {/* Scroll indicator */}
