@@ -79,7 +79,7 @@ export function Services() {
                 </p>
               </div>
               <div className="mt-6">
-                <a href="https://wa.me/50236387717" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/50235174713" target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-emerald-400 text-sm font-semibold hover:text-emerald-300 transition-colors">
                   Consultar precio <ArrowRightIcon size={14} />
                 </a>
