@@ -10,6 +10,7 @@ import { Clients } from './components/Clients';
 import { ComingSoon } from './components/ComingSoon';
 import { AppPromo } from './components/AppPromo';
 import { Footer } from './components/Footer';
+import { TechStack } from './components/TechStack';
 
 export function App() {
   const { isDark, toggleTheme } = useTheme();
@@ -32,6 +33,7 @@ export function App() {
     <div className="min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300">
       <Navigation isDark={isDark} toggleTheme={toggleTheme} />
       <Hero />
+      <TechStack />
       <Services />
       <QuotationCalculator />
       <Tools />

@@ -97,9 +97,24 @@ export function Hero() {
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm font-medium mb-8 animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm font-medium mb-6 animate-fade-in">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           Contabilidad profesional para Guatemala · Odoo 19
+        </div>
+
+        {/* Tech Stack Pills */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8 animate-fade-in">
+          {[
+            { label: 'Odoo', color: 'bg-purple-500/15 border-purple-500/30 text-purple-300' },
+            { label: 'IA · Claude', color: 'bg-orange-500/15 border-orange-500/30 text-orange-300' },
+            { label: 'Módulos Propios', color: 'bg-violet-500/15 border-violet-500/30 text-violet-300' },
+            { label: 'FinanzIA', color: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' },
+          ].map((t) => (
+            <span key={t.label} className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${t.color}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+              {t.label}
+            </span>
+          ))}
         </div>
 
         <div className="flex justify-center mb-8 animate-fade-in">
@@ -115,7 +130,10 @@ export function Hero() {
 
         <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 animate-fade-in">
           Contabilidad · Impuestos · Asesoría Financiera · Consultoría<br />
-          Potenciado por <span className="text-purple-400 font-semibold">Odoo</span>
+          Potenciado por{' '}
+          <span className="text-purple-400 font-semibold">Odoo</span> +{' '}
+          <span className="text-orange-400 font-semibold">IA</span> +{' '}
+          <span className="text-emerald-400 font-semibold">FinanzIA</span>
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-in">
