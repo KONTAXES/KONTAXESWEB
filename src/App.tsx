@@ -4,7 +4,6 @@ import { Navigation } from './components/Navigation';
 import { Hero } from './components/Hero';
 import { Services } from './components/Services';
 import { QuotationCalculator } from './components/QuotationCalculator';
-import { Tools } from './components/Tools';
 import { Team } from './components/Team';
 import { Clients } from './components/Clients';
 import { ComingSoon } from './components/ComingSoon';
@@ -36,7 +35,6 @@ export function App() {
       <Services />
       <TechStack />
       <QuotationCalculator />
-      <Tools />
       <AppPromo />
       <Team />
       <Clients />
