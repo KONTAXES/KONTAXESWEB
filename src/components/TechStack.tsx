@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { Icon3D } from './Icon3D';
 import {
   CheckIcon, ChevronRightIcon, ZapIcon, BarChart3Icon, FileCheckIcon,
   DatabaseIcon, TrendingUpIcon, FileTextIcon, BrainCircuitIcon,
@@ -918,7 +919,11 @@ export function TechStack() {
             <div className="space-y-4">
               {odooFeatures.map((f, i) => (
                 <div key={i} className={`flex gap-4 p-4 rounded-xl border ${f.color} transition-all hover:scale-[1.01]`}>
-                  <f.icon className={`w-8 h-8 flex-shrink-0 ${f.color.split(' ')[0]}`} />
+                  <Icon3D intensity={15}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${f.color.split(' ')[1]} border ${f.color.split(' ')[2]}`}>
+                      <f.icon className={`w-5 h-5 ${f.color.split(' ')[0]}`} />
+                    </div>
+                  </Icon3D>
                   <div>
                     <h3 className="font-semibold text-white text-sm mb-1">{f.title}</h3>
                     <p className="text-gray-400 text-xs leading-relaxed">{f.description}</p>

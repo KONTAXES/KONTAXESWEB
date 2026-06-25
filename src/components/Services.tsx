@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckCircleIcon, PlusCircleIcon, ArrowRightIcon } from 'lucide-react';
+import { CheckCircleIcon, PlusCircleIcon, ArrowRightIcon, BookOpenIcon, SparklesIcon } from 'lucide-react';
+import { Icon3D } from './Icon3D';
 
 export function Services() {
   const basicServices = [
@@ -41,6 +42,11 @@ export function Services() {
           <div className="reveal reveal-delay-1 group relative rounded-2xl bg-white/3 border border-white/8 p-8 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all duration-400">
             <div className="absolute top-0 right-0 w-40 h-40 bg-purple-600/10 rounded-full blur-2xl pointer-events-none group-hover:bg-purple-600/20 transition-all" />
             <div className="relative">
+              <Icon3D className="mb-5">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center shadow-lg shadow-purple-500/10">
+                  <BookOpenIcon className="w-7 h-7 text-purple-400" />
+                </div>
+              </Icon3D>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider mb-5">
                 Servicios Contables Generales
               </div>
@@ -62,6 +68,11 @@ export function Services() {
           <div className="reveal reveal-delay-2 group relative rounded-2xl bg-white/3 border border-white/8 p-8 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all duration-400">
             <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-600/10 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-600/20 transition-all" />
             <div className="relative">
+              <Icon3D className="mb-5">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                  <SparklesIcon className="w-7 h-7 text-emerald-400" />
+                </div>
+              </Icon3D>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-5">
                 Servicios Adicionales
               </div>

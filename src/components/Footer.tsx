@@ -13,7 +13,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <img src="/K_V4-2.png" alt="KONTAXES" className="h-14 w-auto mb-4" />
+            <img src="/K_V4-2.png" alt="KONTAXES" className="logo-img h-14 w-auto mb-4" />
             <p className="text-gray-400 text-sm mb-2">Contabilidad · Impuestos · Asesoría Financiera · Consultoría</p>
             <p className="text-xs text-gray-600 italic">De números a decisiones</p>
             <div className="flex gap-3 mt-6">

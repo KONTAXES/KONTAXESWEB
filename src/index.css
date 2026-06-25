@@ -121,6 +121,28 @@
 }
 .border-glow { animation: borderGlow 3s ease-in-out infinite; }
 
+/* ── Logo theme switching ── */
+html.dark  .logo-img { filter: brightness(0) invert(1); }
+html:not(.dark) .logo-img { filter: brightness(0); }
+
+/* ── 3D icon float animation (uses CSS `translate` so it
+      composes with the JS perspective/rotate transform)  ── */
+@keyframes floatIcon {
+  0%, 100% { translate: 0 0px; }
+  50%       { translate: 0 -9px; }
+}
+.icon-3d {
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: floatIcon 3.5s ease-in-out infinite;
+  display: inline-flex;
+  cursor: pointer;
+}
+/* Stagger delays so icons don't all bob in sync */
+.icon-3d:nth-child(2) { animation-delay: 0.5s; }
+.icon-3d:nth-child(3) { animation-delay: 1.0s; }
+.icon-3d:nth-child(4) { animation-delay: 1.5s; }
+
 /* ── Infinite marquee (Clients carousel) ── */
 @keyframes marquee {
   0%   { transform: translateX(0); }
@@ -179,10 +201,10 @@ html:not(.dark) .text-white        { color: #0f172a !important; }
 html:not(.dark) .text-gray-100     { color: #1e293b !important; }
 html:not(.dark) .text-gray-200     { color: #334155 !important; }
 html:not(.dark) .text-gray-300     { color: #475569 !important; }
-html:not(.dark) .text-gray-400     { color: #64748b !important; }
-html:not(.dark) .text-gray-500     { color: #94a3b8 !important; }
-html:not(.dark) .text-gray-600     { color: #94a3b8 !important; }
-html:not(.dark) .text-gray-700     { color: #cbd5e1 !important; }
+html:not(.dark) .text-gray-400     { color: #475569 !important; }
+html:not(.dark) .text-gray-500     { color: #64748b !important; }
+html:not(.dark) .text-gray-600     { color: #475569 !important; }
+html:not(.dark) .text-gray-700     { color: #334155 !important; }
 html:not(.dark) .hover\:text-white:hover       { color: #0f172a !important; }
 html:not(.dark) .hover\:text-gray-300:hover    { color: #334155 !important; }
 html:not(.dark) .hover\:text-purple-400:hover  { color: #7c3aed !important; }
