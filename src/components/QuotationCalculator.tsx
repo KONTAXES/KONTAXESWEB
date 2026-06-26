@@ -328,22 +328,37 @@ export function QuotationCalculator() {
     );
   };
 
-  const stepCertFEL = () => (
-    <>
-      <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT" />
-      <div className="space-y-3">
-        <Card label="No por ahora" delay={0}
-          selected={form.certFEL === 'ninguno'}
-          onClick={() => pick(() => sCertFEL('ninguno'))} />
-        <Card label="Vía Odoo (CORPOSISTEMAS)" delay={70}
-          selected={form.certFEL === 'odoo'}
-          onClick={() => pick(() => sCertFEL('odoo'))} />
-        <Card label="Vía FinanzIA" delay={140}
-          selected={form.certFEL === 'finanz-ia'}
-          onClick={() => pick(() => sCertFEL('finanz-ia'))} />
-      </div>
-    </>
-  );
+  const stepCertFEL = () => {
+    // Odoo only when full accounting + inventory/cost system
+    const needsOdoo = form.alcance === 'compra-venta' && form.contabilidadCompleta === true;
+    return needsOdoo ? (
+      <>
+        <Q question="¿Necesitas certificador FEL?"
+          hint="Sistema ERP con Odoo — CORPOSISTEMAS, S.A." />
+        <div className="space-y-3">
+          <Card label="No por ahora" delay={0}
+            selected={form.certFEL === 'ninguno'}
+            onClick={() => pick(() => sCertFEL('ninguno'))} />
+          <Card label="Sí — Q375 implementación + Q0.20 por DTE" delay={70}
+            selected={form.certFEL === 'odoo'}
+            onClick={() => pick(() => sCertFEL('odoo'))} />
+        </div>
+      </>
+    ) : (
+      <>
+        <Q question="¿Necesitas certificador FEL?"
+          hint="Factura Electrónica en Línea certificada por la SAT — vía FinanzIA" />
+        <div className="space-y-3">
+          <Card label="No por ahora" delay={0}
+            selected={form.certFEL === 'ninguno'}
+            onClick={() => pick(() => sCertFEL('ninguno'))} />
+          <Card label="Sí — Q0.20 por DTE" delay={70}
+            selected={form.certFEL === 'finanz-ia'}
+            onClick={() => pick(() => sCertFEL('finanz-ia'))} />
+        </div>
+      </>
+    );
+  };
 
   const stepWAFel = () => (
     <>
