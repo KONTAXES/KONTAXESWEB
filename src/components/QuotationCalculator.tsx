@@ -1,134 +1,210 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  CalculatorIcon, CheckCircleIcon, AlertCircleIcon, ArrowRightIcon,
-  DownloadIcon, MessageCircleIcon, MailIcon, ChevronRightIcon, UserIcon,
+  CalculatorIcon, CheckCircleIcon, AlertCircleIcon,
+  DownloadIcon, MessageCircleIcon, MailIcon,
+  ChevronRightIcon, UserIcon, PhoneIcon,
 } from 'lucide-react';
-import { calculateQuotation, QuotationData, QuotationResult } from '../utils/quotationLogic';
+import {
+  QuotationData, QuotationResult, ServiceType, Contribuyente,
+  Regimen, Alcance, CertFEL,
+  calculateQuotation, buildFormSummary, buildWAText, buildEmailBody,
+  isContabilidadObligatoria, needsActivosQuestion,
+  REGIMEN_LABEL, CONTRIB_LABEL, SERVICE_LABEL, FORMS,
+} from '../utils/quotationLogic';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 
-const WA_NUMBER = '50235174713';
+const WA_NUMBER = '50236387717';
 
-/* ─── helpers ─────────────────────────────────────── */
-function pill(active: boolean, accent: 'purple' | 'emerald' | 'sky' = 'purple') {
-  const map = {
-    purple: 'bg-purple-500/20 border-purple-500/60 text-purple-300 shadow-purple-500/10',
-    emerald: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300',
-    sky: 'bg-sky-500/20 border-sky-500/60 text-sky-300',
+/* ── Helpers ──────────────────────────────────────────────────────────── */
+
+function pill(active: boolean, accent: 'purple' | 'emerald' | 'sky' | 'amber' = 'purple') {
+  const accent_classes = {
+    purple: 'bg-purple-500/20 border-purple-500/60 text-purple-300 ring-purple-500/20',
+    emerald: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 ring-emerald-500/20',
+    sky:    'bg-sky-500/20 border-sky-500/60 text-sky-300 ring-sky-500/20',
+    amber:  'bg-amber-500/20 border-amber-500/60 text-amber-300 ring-amber-500/20',
   };
   return `w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${
     active
-      ? `${map[accent]} shadow-lg ring-1 ring-inset ${accent === 'purple' ? 'ring-purple-500/20' : ''}`
+      ? `${accent_classes[accent]} shadow-lg ring-1 ring-inset`
       : 'bg-white/3 border-white/8 text-gray-400 hover:border-white/20 hover:bg-white/6 hover:text-gray-300'
   }`;
 }
 
-const Label = ({ n, children }: { n: number; children: React.ReactNode }) => (
-  <div className="flex items-center gap-2 mb-3">
-    <span className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold flex items-center justify-center flex-shrink-0">
-      {n}
-    </span>
-    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{children}</label>
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex items-center gap-2 mb-4">
+    <div className="h-px flex-1 bg-white/5" />
+    <span className="text-xs font-bold uppercase tracking-widest text-purple-400 px-2">{children}</span>
+    <div className="h-px flex-1 bg-white/5" />
   </div>
 );
 
-function buildSummary(data: QuotationData): string[] {
-  const lines: string[] = [];
-  if (data.contribuyente === 'individual') lines.push('Empresa o persona individual');
-  if (data.contribuyente === 'sociedad')  lines.push('Sociedad Anónima');
-  if (data.regimen === 'pequeño')         lines.push('Régimen Pequeño Contribuyente (IVA 5%)');
-  if (data.regimen === 'iva-isr-5-7')     lines.push('Régimen IVA 12% + ISR 5-7%');
-  if (data.regimen === 'iva-isr-25-iso')  lines.push('Régimen IVA 12% + ISR 25% + ISO');
-  if (data.activos === 'menor-25k')       lines.push('Activos hasta Q25,000');
-  if (data.activos === 'mayor-25k')       lines.push('Activos mayores a Q25,000');
-  if (data.contabilidadCompleta === 'si') lines.push('Contabilidad completa con sistema Odoo');
-  const facMap: Record<string, string> = {
-    '0-10': '0–10 facturas/mes', '11-50': '11–50 facturas/mes',
-    '51-100': '51–100 facturas/mes', 'mas-100': 'Más de 100 facturas/mes',
+const StepCard = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-white/3 border border-white/8 rounded-2xl p-6 animate-fade-in ${className}`}>
+    {children}
+  </div>
+);
+
+const StepTitle = ({ icon, title, subtitle }: { icon: string; title: string; subtitle?: string }) => (
+  <div className="flex items-start gap-3 mb-5">
+    <span className="text-2xl">{icon}</span>
+    <div>
+      <p className="text-white font-bold text-sm">{title}</p>
+      {subtitle && <p className="text-gray-500 text-xs mt-0.5">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+/* Badge for obligatoria notice */
+const ObligatoriaNotice = ({ reason }: { reason: string }) => (
+  <div className="flex items-start gap-3 p-4 rounded-xl bg-purple-500/10 border border-purple-500/25">
+    <CheckCircleIcon size={16} className="text-purple-400 flex-shrink-0 mt-0.5" />
+    <div>
+      <p className="text-purple-300 text-sm font-semibold">Contabilidad completa con FinanzIA — Obligatoria</p>
+      <p className="text-purple-400/70 text-xs mt-1">{reason} · +Q500/mes</p>
+    </div>
+  </div>
+);
+
+/* Non-contable service contact card */
+const ContactServiceCard = ({ serviceType }: { serviceType: ServiceType }) => {
+  const info: Record<string, { icon: string; desc: string }> = {
+    auditoria: {
+      icon: '🔍',
+      desc: 'Los servicios de auditoría requieren una evaluación personalizada de tus necesidades, alcance y documentación. Contáctanos para una propuesta a la medida.',
+    },
+    outsourcing: {
+      icon: '🤝',
+      desc: 'El outsourcing contable y administrativo se cotiza según el volumen de operaciones, cantidad de colaboradores y procesos a externalizar.',
+    },
+    'modulos-odoo': {
+      icon: '🧩',
+      desc: 'El costo de los módulos Odoo varía según los módulos requeridos, número de usuarios y configuraciones. Trabajamos con Odoo Community y Enterprise.',
+    },
+    'implementacion-odoo': {
+      icon: '⚙️',
+      desc: 'Ayudamos con la implementación de Odoo aunque no somos partners oficiales. La cotización depende del alcance, módulos y horas de consultoría requeridas.',
+    },
   };
-  if (data.facturacion && facMap[data.facturacion]) lines.push(`Facturación: ${facMap[data.facturacion]}`);
-  if (data.tipoNegocio === 'servicios')    lines.push('Negocio de servicios');
-  if (data.tipoNegocio === 'compra-venta') lines.push('Compra-venta de bienes (incluye inventarios)');
-  if (data.certificador === 'si')          lines.push('Certificador FEL incluido');
-  return lines;
-}
+  const item = info[serviceType] ?? { icon: '📋', desc: 'Contáctanos para más información.' };
 
-function buildWAText(data: QuotationData, result: QuotationResult): string {
-  const summary = buildSummary(data);
-  const clientLine = data.nombre ? `*${data.nombre}*${data.empresa ? ` — ${data.empresa}` : ''}` : '';
-  const lines = [
-    `👋 Hola KONTAXES, acabo de generar mi cotización estimada:`,
-    clientLine,
-    '',
-    '📋 *Servicios solicitados:*',
-    ...summary.map(s => `• ${s}`),
-    '',
-    `💰 *Total mensual estimado: Q ${result.total.toLocaleString('es-GT')}.00*`,
-    '',
-    '¿Podemos agendar una llamada para confirmar los detalles?',
-  ].filter(l => l !== undefined);
-  return encodeURIComponent(lines.join('\n'));
-}
+  return (
+    <StepCard>
+      <div className="text-center py-4">
+        <span className="text-5xl mb-4 block">{item.icon}</span>
+        <h3 className="text-white font-bold text-lg mb-2">{SERVICE_LABEL[serviceType]}</h3>
+        <p className="text-gray-400 text-sm max-w-md mx-auto mb-6 leading-relaxed">{item.desc}</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${SERVICE_LABEL[serviceType]}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl hover:bg-emerald-500/25 transition-all text-sm"
+          >
+            <PhoneIcon size={15} /> Contactar por WhatsApp
+          </a>
+          <a
+            href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${SERVICE_LABEL[serviceType]}`)}`}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-xl hover:bg-purple-500/25 transition-all text-sm"
+          >
+            <MailIcon size={15} /> Enviar correo
+          </a>
+        </div>
+      </div>
+    </StepCard>
+  );
+};
 
-function buildEmailBody(data: QuotationData, result: QuotationResult): string {
-  const summary = buildSummary(data);
-  const lines = [
-    `Estimado equipo de KONTAXES,`,
-    ``,
-    `He generado la siguiente cotización estimada desde su sitio web:`,
-    ``,
-    `Datos del solicitante:`,
-    data.nombre   ? `Nombre: ${data.nombre}`   : '',
-    data.empresa  ? `Empresa: ${data.empresa}`  : '',
-    data.whatsapp ? `WhatsApp: ${data.whatsapp}` : '',
-    ``,
-    `Servicios:`,
-    ...summary.map(s => `• ${s}`),
-    ``,
-    `Total mensual estimado: Q ${result.total.toLocaleString('es-GT')}.00`,
-    ``,
-    `Quedo a la espera de su contacto.`,
-    data.nombre || '',
-  ].filter(l => l !== undefined);
-  return encodeURIComponent(lines.join('\n'));
-}
+/* ── Fresh state ─────────────────────────────────────────────────────── */
 
-/* ─── Main component ──────────────────────────────── */
+const EMPTY: QuotationData = {
+  serviceType: '', contribuyente: '', regimen: '',
+  activosMayor25k: null, alcance: '', contabilidadCompleta: null,
+  presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
+  nombre: '', empresa: '', whatsapp: '', correo: '',
+};
+
+/* ── Main component ──────────────────────────────────────────────────── */
+
 export function QuotationCalculator() {
-  const [form, setForm] = useState<QuotationData>({
-    contribuyente: '', regimen: '', activos: '', contabilidadCompleta: '',
-    facturacion: '', tipoNegocio: '', certificador: '',
-    nombre: '', empresa: '', whatsapp: '', correo: '',
-  });
-  const [result, setResult]     = useState<QuotationResult | null>(null);
-  const [error, setError]       = useState('');
+  const [form, setForm] = useState<QuotationData>(EMPTY);
+  const [result, setResult] = useState<QuotationResult | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const set = (f: keyof QuotationData, v: string) => {
-    setForm(p => ({ ...p, [f]: v }));
-    setError('');
+  /* --- Setters with cascade reset --- */
+  const setServiceType = (v: ServiceType) => {
+    setForm({ ...EMPTY, serviceType: v, nombre: form.nombre, empresa: form.empresa, whatsapp: form.whatsapp, correo: form.correo });
+    setResult(null);
   };
 
-  const needsFullAcc = (form.regimen === 'iva-isr-5-7' || form.regimen === 'iva-isr-25-iso') && form.activos === 'mayor-25k';
+  const setContribuyente = (v: Contribuyente) => {
+    setForm(p => ({ ...p, contribuyente: v, regimen: '', activosMayor25k: null, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+    setResult(null);
+  };
 
-  useEffect(() => {
-    if (needsFullAcc) setForm(p => ({ ...p, contabilidadCompleta: 'si' }));
-  }, [form.regimen, form.activos]);
+  const setRegimen = (v: Regimen) => {
+    setForm(p => ({ ...p, regimen: v, activosMayor25k: null, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+    setResult(null);
+  };
 
-  const completed = [
-    !!form.contribuyente, !!form.regimen, !!form.activos,
-    needsFullAcc || !!form.contabilidadCompleta,
-    !!form.facturacion, !!form.tipoNegocio, !!form.certificador,
-  ];
-  const doneCount  = completed.filter(Boolean).length;
-  const totalSteps = 7;
-  const progress   = Math.round((doneCount / totalSteps) * 100);
+  const setActivosMayor25k = (v: boolean) => {
+    setForm(p => ({ ...p, activosMayor25k: v, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+    setResult(null);
+  };
 
+  const setAlcance = (v: Alcance) => {
+    setForm(p => ({ ...p, alcance: v, contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+    setResult(null);
+  };
+
+  const setContabilidadCompleta = (v: boolean) => {
+    setForm(p => ({ ...p, contabilidadCompleta: v, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+    setResult(null);
+  };
+
+  const setPresentacionImpuestos = (v: boolean) => {
+    setForm(p => ({ ...p, presentacionImpuestos: v, certFEL: '', whatsappFEL: null }));
+    setResult(null);
+  };
+
+  const setCertFEL = (v: CertFEL) => {
+    setForm(p => ({ ...p, certFEL: v, whatsappFEL: null }));
+    setResult(null);
+  };
+
+  const setWhatsappFEL = (v: boolean) => {
+    setForm(p => ({ ...p, whatsappFEL: v }));
+    setResult(null);
+  };
+
+  const setContact = (key: 'nombre' | 'empresa' | 'whatsapp' | 'correo', v: string) => {
+    setForm(p => ({ ...p, [key]: v }));
+  };
+
+  /* --- Computed state --- */
+  const obligatoria  = isContabilidadObligatoria(form);
+  const needsActivos = needsActivosQuestion(form);
+  const isContable   = form.serviceType === 'contable';
+
+  const activosAnswered = !needsActivos || form.activosMayor25k !== null;
+  const contabilidadDetermined = obligatoria || form.contabilidadCompleta !== null;
+
+  // Visibility of each step
+  const showContrib    = isContable;
+  const showRegimen    = showContrib && !!form.contribuyente;
+  const showActivos    = showRegimen && !!form.regimen && needsActivos;
+  const showAlcance    = showRegimen && !!form.regimen && activosAnswered;
+  const showContab     = showAlcance && !!form.alcance;
+  const showImpuestos  = showContab && contabilidadDetermined;
+  const showFEL        = showImpuestos && form.presentacionImpuestos !== null;
+  const showWAFel      = showFEL && !!form.certFEL;
+  const showContact    = showWAFel && form.whatsappFEL !== null;
+  const canCalculate   = showContact;
+
+  /* --- Handlers --- */
   const handleCalculate = () => {
-    const missing = !form.contribuyente || !form.regimen || !form.activos ||
-      (!needsFullAcc && !form.contabilidadCompleta) || !form.facturacion ||
-      !form.tipoNegocio || !form.certificador;
-    if (missing) { setError('Completa todos los campos para obtener tu cotización.'); return; }
+    if (!canCalculate) return;
     setResult(calculateQuotation(form));
+    setTimeout(() => document.getElementById('cotizador-result')?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleDownloadPDF = async () => {
@@ -139,9 +215,9 @@ export function QuotationCalculator() {
         nombre: form.nombre, empresa: form.empresa,
         whatsapp: form.whatsapp, correo: form.correo,
         breakdown: result.breakdown, total: result.total,
-        warnings: result.warnings,
+        warnings: result.notes,
         date: new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' }),
-        formSummary: buildSummary(form),
+        formSummary: buildFormSummary(form),
       });
     } finally {
       setPdfLoading(false);
@@ -167,6 +243,12 @@ export function QuotationCalculator() {
     }, 400);
   };
 
+  /* --- Preview total (live) --- */
+  const liveTotal = canCalculate || (showContab && contabilidadDetermined)
+    ? calculateQuotation(form).total
+    : null;
+
+  /* ── Render ─────────────────────────────────────────────────────── */
   return (
     <section id="cotizador" className="py-24 bg-gray-950 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/8 to-transparent pointer-events-none" />
@@ -182,236 +264,365 @@ export function QuotationCalculator() {
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Cotizador
           </h2>
-          <p className="text-gray-400 text-lg">Obtén tu estimación de precio en segundos</p>
+          <p className="text-gray-400 text-lg">Obtén tu estimación en segundos</p>
         </div>
 
-        <div className="reveal space-y-6">
+        <div className="reveal space-y-5">
 
-          {/* Progress bar */}
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Progreso</span>
-              <span className="text-xs font-bold text-purple-400">{doneCount}/{totalSteps} completados</span>
-            </div>
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-purple-500 to-violet-400 rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex gap-1.5 mt-3">
-              {completed.map((done, i) => (
-                <div key={i} className={`flex-1 h-1 rounded-full transition-all duration-300 ${done ? 'bg-purple-500' : 'bg-white/10'}`} />
-              ))}
-            </div>
-          </div>
-
-          {/* Form card */}
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 md:p-8 space-y-8">
-
-            {/* Step header */}
-            <div className="flex items-center gap-3 pb-5 border-b border-white/5">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center">
-                <CalculatorIcon className="w-5 h-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm">Calculadora de Servicios</p>
-                <p className="text-gray-500 text-xs">Selecciona tu situación — los precios son en GTQ/mes</p>
-              </div>
-            </div>
-
-            {/* 1. Tipo contribuyente */}
-            <div>
-              <Label n={1}>Tipo de contribuyente</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { val: 'individual', label: 'Empresa o persona individual', icon: '🏢' },
-                  { val: 'sociedad',   label: 'Sociedad Anónima (S.A.)',       icon: '🏛️' },
-                ].map(o => (
-                  <button key={o.val} onClick={() => set('contribuyente', o.val)} className={pill(form.contribuyente === o.val)}>
-                    <span className="text-lg mb-1 block">{o.icon}</span>
-                    <span className="block font-semibold text-xs leading-snug">{o.label}</span>
-                    {form.contribuyente === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
+          {/* ── Paso 0: Tipo de servicio ─────────────────────────────── */}
+          <StepCard>
+            <StepTitle icon="🎯" title="¿Qué servicio necesitas?" subtitle="Selecciona el tipo de servicio para comenzar" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(Object.entries(SERVICE_LABEL) as [ServiceType, string][]).map(([val, label]) => {
+                const icons: Record<ServiceType, string> = {
+                  contable: '📊', auditoria: '🔍', outsourcing: '🤝',
+                  'modulos-odoo': '🧩', 'implementacion-odoo': '⚙️',
+                };
+                const subtitles: Record<ServiceType, string> = {
+                  contable: 'Contabilidad, impuestos y asesoría',
+                  auditoria: 'Revisión y certificación de estados',
+                  outsourcing: 'Externalización de procesos',
+                  'modulos-odoo': 'Módulos personalizados para Odoo',
+                  'implementacion-odoo': 'Ayudamos con tu implementación',
+                };
+                return (
+                  <button key={val} onClick={() => setServiceType(val)} className={pill(form.serviceType === val)}>
+                    <span className="text-xl mb-1 block">{icons[val]}</span>
+                    <span className="block font-semibold text-xs leading-snug">{label}</span>
+                    <span className="block text-xs opacity-50 mt-0.5">{subtitles[val]}</span>
+                    {form.serviceType === val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </StepCard>
 
-            {/* 2. Régimen */}
-            <div>
-              <Label n={2}>Régimen de impuestos</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {[
-                  { val: 'pequeño',       label: 'Pequeño Contribuyente', sub: 'IVA 5%' },
-                  { val: 'iva-isr-5-7',   label: 'IVA 12% + ISR 5-7%',   sub: 'Régimen opcional' },
-                  { val: 'iva-isr-25-iso',label: 'IVA 12% + ISR 25%',    sub: '+ ISO (régimen general)' },
-                ].map(o => (
-                  <button key={o.val} onClick={() => set('regimen', o.val)} className={pill(form.regimen === o.val)}>
-                    <span className="block font-semibold text-xs leading-snug">{o.label}</span>
-                    <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
-                    {form.regimen === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* No-contable: card de contacto */}
+          {form.serviceType && form.serviceType !== 'contable' && (
+            <ContactServiceCard serviceType={form.serviceType as ServiceType} />
+          )}
 
-            {/* 3. Activos */}
-            <div>
-              <Label n={3}>Monto de activos</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { val: 'menor-25k', label: 'Activos de Q0 a Q25,000',     sub: 'No requiere contabilidad completa' },
-                  { val: 'mayor-25k', label: 'Activos mayores a Q25,000',   sub: 'Requiere contabilidad completa' },
-                ].map(o => (
-                  <button key={o.val} onClick={() => set('activos', o.val)} className={pill(form.activos === o.val)}>
-                    <span className="block font-semibold text-xs">{o.label}</span>
-                    <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
-                    {form.activos === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 4. Contabilidad completa (conditional) */}
-            {!needsFullAcc && form.activos && (
-              <div>
-                <Label n={4}>¿Desea contabilidad completa con Odoo?</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { val: 'si', label: 'Sí, con sistema Odoo', icon: '✅' },
-                    { val: 'no', label: 'No por ahora',          icon: '⏩' },
-                  ].map(o => (
-                    <button key={o.val} onClick={() => set('contabilidadCompleta', o.val)} className={pill(form.contabilidadCompleta === o.val)}>
-                      <span className="text-lg mb-1 block">{o.icon}</span>
-                      <span className="block font-semibold text-xs">{o.label}</span>
-                      {form.contabilidadCompleta === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
-                    </button>
-                  ))}
+          {/* ── Flujo contable ──────────────────────────────────────── */}
+          {isContable && (
+            <>
+              {/* Paso 1: Tipo de contribuyente */}
+              <StepCard>
+                <StepTitle icon="🏢" title="Tipo de contribuyente" subtitle="¿Quién asume la responsabilidad legal del negocio?" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(Object.entries(CONTRIB_LABEL) as [Contribuyente, string][]).map(([val, label]) => {
+                    const subs: Record<Contribuyente, string> = {
+                      individual: 'La responsabilidad recae en una persona natural',
+                      sociedad: 'La responsabilidad recae en una persona jurídica (S.A.)',
+                    };
+                    const icons = { individual: '👤', sociedad: '🏛️' };
+                    return (
+                      <button key={val} onClick={() => setContribuyente(val)} className={pill(form.contribuyente === val)}>
+                        <span className="text-xl mb-1 block">{icons[val]}</span>
+                        <span className="block font-semibold text-xs leading-snug">{label}</span>
+                        <span className="block text-xs opacity-50 mt-0.5">{subs[val]}</span>
+                        {form.contribuyente === val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-            )}
+              </StepCard>
 
-            {needsFullAcc && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs">
-                <CheckCircleIcon size={14} className="flex-shrink-0" />
-                Contabilidad completa con Odoo es <strong className="mx-1">obligatoria por ley</strong> para tu situación.
-              </div>
-            )}
+              {/* Paso 2: Régimen fiscal */}
+              {showRegimen && (
+                <StepCard>
+                  <StepTitle icon="📋" title="Régimen fiscal" subtitle="¿Bajo qué régimen tributa tu negocio?" />
+                  <div className="grid grid-cols-1 gap-3">
+                    {(Object.entries(REGIMEN_LABEL) as [Regimen, string][]).map(([val, label]) => {
+                      const prices = { pequeño: 250, opcional: 450, general: 550 };
+                      const base = prices[val];
+                      const societyExtra = form.contribuyente === 'sociedad' ? 500 : 0;
+                      const totalBase = base + societyExtra;
+                      const descs: Record<Regimen, string> = {
+                        pequeño: 'Aplica para negocios con ingresos anuales menores a Q150,000',
+                        opcional: 'Pagos trimestrales del ISR; el más utilizado por PYMEs',
+                        general:  'Para empresas con operaciones más complejas; ISR sobre utilidades netas',
+                      };
+                      const formCount = FORMS[val];
+                      return (
+                        <button key={val} onClick={() => setRegimen(val)} className={`${pill(form.regimen === val)} flex items-start justify-between gap-3`}>
+                          <div className="flex-1 text-left">
+                            <span className="block font-semibold text-sm leading-snug">{label}</span>
+                            <span className="block text-xs opacity-50 mt-0.5">{descs[val]}</span>
+                            <span className="block text-xs opacity-40 mt-0.5">{formCount} {formCount === 1 ? 'formulario' : 'formularios'} de impuestos</span>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className="text-xs font-bold text-purple-300 block">desde Q{totalBase}</span>
+                            <span className="text-xs text-gray-600">/mes</span>
+                          </div>
+                          {form.regimen === val && <CheckCircleIcon size={12} className="mt-1 text-purple-400 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </StepCard>
+              )}
 
-            {/* 5. Facturación */}
-            <div>
-              <Label n={5}>Facturas emitidas al mes</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { val: '0-10',    label: '0 – 10',        icon: '📄' },
-                  { val: '11-50',   label: '11 – 50',       icon: '📋' },
-                  { val: '51-100',  label: '51 – 100',      icon: '📁' },
-                  { val: 'mas-100', label: '100+',          icon: '🗂️' },
-                ].map(o => (
-                  <button key={o.val} onClick={() => set('facturacion', o.val)} className={pill(form.facturacion === o.val)}>
-                    <span className="text-xl mb-1 block">{o.icon}</span>
-                    <span className="block font-bold">{o.label}</span>
-                    {form.facturacion === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+              {/* Paso 2b: Activos (solo sociedad + pequeño) */}
+              {showActivos && (
+                <StepCard>
+                  <StepTitle icon="💰" title="¿Tus activos totales superan Q25,000?" subtitle="Determina si la contabilidad completa es legalmente obligatoria" />
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { val: true,  icon: '✅', label: 'Sí, superan Q25,000', sub: 'Contabilidad completa será obligatoria por ley' },
+                      { val: false, icon: '❌', label: 'No, son Q25,000 o menos', sub: 'Contabilidad completa es opcional' },
+                    ].map(o => (
+                      <button key={String(o.val)} onClick={() => setActivosMayor25k(o.val)} className={pill(form.activosMayor25k === o.val, o.val ? 'amber' : 'sky')}>
+                        <span className="text-xl mb-1 block">{o.icon}</span>
+                        <span className="block font-semibold text-xs leading-snug">{o.label}</span>
+                        <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
+                        {form.activosMayor25k === o.val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
+                      </button>
+                    ))}
+                  </div>
+                </StepCard>
+              )}
 
-            {/* 6. Tipo de negocio */}
-            <div>
-              <Label n={6}>Tipo de negocio</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { val: 'servicios',    label: 'Servicios técnicos, profesionales o en general', icon: '💼' },
-                  { val: 'compra-venta', label: 'Compra-venta de bienes',                          icon: '🛒' },
-                ].map(o => (
-                  <button key={o.val} onClick={() => set('tipoNegocio', o.val)} className={pill(form.tipoNegocio === o.val)}>
-                    <span className="text-2xl mb-1 block">{o.icon}</span>
-                    <span className="block font-semibold text-xs leading-snug">{o.label}</span>
-                    {form.tipoNegocio === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+              {/* Paso 3: Alcance del servicio */}
+              {showAlcance && (
+                <StepCard>
+                  <StepTitle icon="🧭" title="Alcance del negocio" subtitle="¿A qué se dedica principalmente tu empresa?" />
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { val: 'servicios' as Alcance,    icon: '💼', label: 'Servicios', sub: 'Técnicos, profesionales, consultoría, etc.' },
+                      { val: 'compra-venta' as Alcance, icon: '🛒', label: 'Compra-venta de bienes', sub: 'Requiere control de inventarios y costo de ventas (+Q500)' },
+                    ].map(o => (
+                      <button key={o.val} onClick={() => setAlcance(o.val)} className={pill(form.alcance === o.val, o.val === 'compra-venta' ? 'emerald' : 'purple')}>
+                        <span className="text-2xl mb-1 block">{o.icon}</span>
+                        <span className="block font-semibold text-xs leading-snug">{o.label}</span>
+                        <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
+                        {form.alcance === o.val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
+                      </button>
+                    ))}
+                  </div>
+                </StepCard>
+              )}
 
-            {/* 7. Certificador FEL */}
-            <div>
-              <Label n={7}>¿Necesitas certificador FEL (Factura Electrónica)?</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { val: 'si', label: 'Sí, necesito FEL',            icon: '🧾' },
-                  { val: 'no', label: 'No por ahora',                  icon: '⏩' },
-                ].map(o => (
-                  <button key={o.val} onClick={() => set('certificador', o.val)} className={pill(form.certificador === o.val)}>
-                    <span className="text-2xl mb-1 block">{o.icon}</span>
-                    <span className="block font-semibold text-xs">{o.label}</span>
-                    {form.certificador === o.val && <CheckCircleIcon size={12} className="mt-1 text-purple-400" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+              {/* Paso 4: Contabilidad completa */}
+              {showContab && (
+                <StepCard>
+                  <StepTitle
+                    icon="📒"
+                    title="Contabilidad completa con FinanzIA"
+                    subtitle="Catálogo de cuentas, asientos contables y estados financieros — +Q500/mes"
+                  />
+                  {obligatoria ? (
+                    <ObligatoriaNotice
+                      reason={
+                        form.contribuyente === 'sociedad' && form.regimen !== 'pequeño'
+                          ? `Las sociedades bajo ${REGIMEN_LABEL[form.regimen as Regimen]} están obligadas a llevar contabilidad completa`
+                          : 'Tu sociedad tiene activos mayores a Q25,000, por lo que la ley exige contabilidad completa'
+                      }
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-gray-500 text-xs mb-3">
+                        No es fiscalmente obligatorio, pero es <span className="text-gray-300">recomendado financieramente</span> para una gestión sólida.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { val: true,  icon: '📊', label: 'Sí, quiero contabilidad completa', sub: '+Q500/mes · Plataforma FinanzIA' },
+                          { val: false, icon: '⏩', label: 'No por ahora', sub: 'Solo contabilidad básica' },
+                        ].map(o => (
+                          <button key={String(o.val)} onClick={() => setContabilidadCompleta(o.val)} className={pill(form.contabilidadCompleta === o.val)}>
+                            <span className="text-xl mb-1 block">{o.icon}</span>
+                            <span className="block font-semibold text-xs leading-snug">{o.label}</span>
+                            <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
+                            {form.contabilidadCompleta === o.val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </StepCard>
+              )}
 
-          {/* Optional contact info */}
-          <div className="bg-white/2 border border-white/6 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <UserIcon size={16} className="text-purple-400" />
-              <span className="text-sm font-semibold text-gray-300">Tus datos <span className="text-gray-600 font-normal">(opcional — para incluir en la cotización)</span></span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {([
-                { key: 'nombre',   placeholder: 'Nombre completo',   type: 'text' },
-                { key: 'empresa',  placeholder: 'Nombre de empresa', type: 'text' },
-                { key: 'whatsapp', placeholder: 'WhatsApp (+502...)', type: 'tel'  },
-                { key: 'correo',   placeholder: 'Correo electrónico', type: 'email'},
-              ] as const).map(f => (
-                <input
-                  key={f.key}
-                  type={f.type}
-                  placeholder={f.placeholder}
-                  value={form[f.key] || ''}
-                  onChange={e => set(f.key, e.target.value)}
-                  className="px-4 py-2.5 rounded-xl bg-white/4 border border-white/8 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/6 transition-all"
-                />
-              ))}
-            </div>
-          </div>
+              {/* Paso 5: Presentación de impuestos */}
+              {showImpuestos && (
+                <StepCard>
+                  {(() => {
+                    const reg = form.regimen as Regimen;
+                    const numForms = FORMS[reg];
+                    const cost = numForms * 100;
+                    return (
+                      <>
+                        <StepTitle
+                          icon="🧾"
+                          title="¿Incluir presentación de impuestos?"
+                          subtitle={`${numForms} ${numForms === 1 ? 'formulario' : 'formularios'} · +Q${cost}/mes si seleccionas Sí`}
+                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { val: true,  icon: '✅', label: `Sí (+Q${cost}/mes)`, sub: `KONTAXES presenta tus ${numForms === 1 ? 'impuesto' : 'impuestos'} ante la SAT` },
+                            { val: false, icon: '⏩', label: 'No, lo hago yo mismo', sub: 'Tú o tu equipo presentan los formularios' },
+                          ].map(o => (
+                            <button key={String(o.val)} onClick={() => setPresentacionImpuestos(o.val)} className={pill(form.presentacionImpuestos === o.val, o.val ? 'emerald' : 'purple')}>
+                              <span className="text-xl mb-1 block">{o.icon}</span>
+                              <span className="block font-semibold text-xs leading-snug">{o.label}</span>
+                              <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
+                              {form.presentacionImpuestos === o.val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </StepCard>
+              )}
 
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-2 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              <AlertCircleIcon size={16} className="flex-shrink-0" /> {error}
-            </div>
+              {/* Paso 6: Certificador FEL */}
+              {showFEL && (
+                <StepCard>
+                  <StepTitle
+                    icon="🧾"
+                    title="Certificador FEL — Factura Electrónica"
+                    subtitle="¿Necesitas emitir Facturas Electrónicas en Línea (FEL) certificadas por la SAT?"
+                  />
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      {
+                        val: 'ninguno' as CertFEL,
+                        icon: '⏩',
+                        label: 'No necesito por ahora',
+                        sub: 'Puedes agregarlo después cuando lo necesites',
+                        badge: '',
+                      },
+                      {
+                        val: 'odoo' as CertFEL,
+                        icon: '🟣',
+                        label: 'Vía Odoo (CORPOSISTEMAS, S.A.)',
+                        sub: 'Q375 implementación (cobro único) + Q0.20/DTE emitido',
+                        badge: 'popular',
+                      },
+                      {
+                        val: 'finanz-ia' as CertFEL,
+                        icon: '🟢',
+                        label: 'Vía FinanzIA',
+                        sub: 'Sin costo de implementación · Q0.20/DTE emitido',
+                        badge: '',
+                      },
+                    ].map(o => (
+                      <button key={o.val} onClick={() => setCertFEL(o.val)} className={`${pill(form.certFEL === o.val)} flex items-center justify-between gap-3`}>
+                        <div className="flex items-center gap-3 flex-1">
+                          <span className="text-xl flex-shrink-0">{o.icon}</span>
+                          <div className="text-left">
+                            <span className="block font-semibold text-xs leading-snug">{o.label}</span>
+                            <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {o.badge === 'popular' && (
+                            <span className="text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full">popular</span>
+                          )}
+                          {form.certFEL === o.val && <CheckCircleIcon size={14} className="text-purple-400" />}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
+                    <p className="text-xs text-amber-400/70 mt-3 flex items-start gap-1.5">
+                      <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
+                      El costo por DTE emitido (Q0.20) es variable y se factura mensualmente por separado según el volumen de facturas. No se incluye en el total mensual.
+                    </p>
+                  )}
+                </StepCard>
+              )}
+
+              {/* Paso 7: WhatsApp FEL (FELSimple) */}
+              {showWAFel && (
+                <StepCard>
+                  <StepTitle
+                    icon="📱"
+                    title="¿Facturas por WhatsApp? (FELSimple)"
+                    subtitle="Emite facturas electrónicas certificadas directamente desde WhatsApp — +Q50/mes"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { val: true,  icon: '💬', label: 'Sí, quiero FELSimple', sub: '+Q50/mes · Facturas desde WhatsApp en segundos' },
+                      { val: false, icon: '⏩', label: 'No por ahora', sub: 'Puedes activarlo después' },
+                    ].map(o => (
+                      <button key={String(o.val)} onClick={() => setWhatsappFEL(o.val)} className={pill(form.whatsappFEL === o.val, o.val ? 'emerald' : 'purple')}>
+                        <span className="text-xl mb-1 block">{o.icon}</span>
+                        <span className="block font-semibold text-xs leading-snug">{o.label}</span>
+                        <span className="block text-xs opacity-50 mt-0.5">{o.sub}</span>
+                        {form.whatsappFEL === o.val && <CheckCircleIcon size={12} className="mt-1.5 text-purple-400" />}
+                      </button>
+                    ))}
+                  </div>
+                </StepCard>
+              )}
+
+              {/* Datos de contacto (opcionales) */}
+              {showContact && (
+                <StepCard>
+                  <div className="flex items-center gap-2 mb-5">
+                    <UserIcon size={16} className="text-purple-400" />
+                    <span className="text-sm font-semibold text-gray-300">
+                      Tus datos <span className="text-gray-600 font-normal">(opcional — para incluir en la cotización)</span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { key: 'nombre'   as const, placeholder: 'Nombre completo',    type: 'text'  },
+                      { key: 'empresa'  as const, placeholder: 'Nombre de empresa',  type: 'text'  },
+                      { key: 'whatsapp' as const, placeholder: 'WhatsApp (+502…)',    type: 'tel'   },
+                      { key: 'correo'   as const, placeholder: 'Correo electrónico', type: 'email' },
+                    ]).map(f => (
+                      <input
+                        key={f.key}
+                        type={f.type}
+                        placeholder={f.placeholder}
+                        value={form[f.key] || ''}
+                        onChange={e => setContact(f.key, e.target.value)}
+                        className="px-4 py-2.5 rounded-xl bg-white/4 border border-white/8 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/6 transition-all"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Live preview total */}
+                  {liveTotal !== null && liveTotal > 0 && (
+                    <div className="mt-5 p-4 rounded-xl bg-purple-500/8 border border-purple-500/15 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Estimado preliminar</span>
+                      <span className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        Q {liveTotal.toLocaleString('es-GT')}<span className="text-gray-500 text-base font-normal">.00/mes</span>
+                      </span>
+                    </div>
+                  )}
+                </StepCard>
+              )}
+
+              {/* CTA */}
+              {showContact && (
+                <button
+                  onClick={handleCalculate}
+                  className="w-full py-4 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 cursor-pointer"
+                >
+                  <CalculatorIcon size={20} />
+                  Ver mi cotización detallada →
+                </button>
+              )}
+            </>
           )}
 
-          {/* CTA */}
-          {!result && (
-            <button
-              onClick={handleCalculate}
-              disabled={doneCount < totalSteps}
-              className={`w-full py-4 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base ${
-                doneCount === totalSteps
-                  ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 cursor-pointer'
-                  : 'bg-white/5 border border-white/8 text-gray-600 cursor-not-allowed'
-              }`}
-            >
-              <CalculatorIcon size={20} />
-              {doneCount < totalSteps ? `Completa ${totalSteps - doneCount} campo(s) más` : 'Calcular mi cotización →'}
-            </button>
-          )}
-
-          {/* Result */}
+          {/* ── Resultado ────────────────────────────────────────────── */}
           {result && (
-            <div className="border border-purple-500/30 rounded-2xl overflow-hidden animate-fade-in">
+            <div id="cotizador-result" className="border border-purple-500/30 rounded-2xl overflow-hidden animate-fade-in">
 
               {/* Total header */}
               <div className="bg-gradient-to-r from-purple-900/60 to-violet-900/40 p-6 border-b border-purple-500/20">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-1">Tu Cotización Estimada</p>
-                    <p className="text-gray-400 text-sm">Servicios contables mensuales en GTQ</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-1">Cotización Estimada</p>
+                    <p className="text-gray-400 text-sm">Servicios contables mensuales · IVA incluido</p>
+                    {form.nombre && (
+                      <p className="text-white font-semibold text-sm mt-2">{form.nombre}{form.empresa ? ` — ${form.empresa}` : ''}</p>
+                    )}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <p className="text-xs text-gray-500 mb-1">Total mensual</p>
                     <p className="text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                       Q {result.total.toLocaleString('es-GT')}
@@ -421,25 +632,35 @@ export function QuotationCalculator() {
                 </div>
               </div>
 
-              {/* Summary list (no prices) */}
+              {/* Breakdown */}
               <div className="p-6 bg-white/2 border-b border-white/5">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Servicios incluidos</p>
-                <div className="space-y-2">
-                  {buildSummary(form).map((line, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm text-gray-300">
-                      <CheckCircleIcon size={15} className="text-purple-400 flex-shrink-0" />
-                      {line}
+                <SectionLabel>Desglose de servicios</SectionLabel>
+                <div className="space-y-3">
+                  {result.breakdown.map((item, i) => (
+                    <div key={i} className="flex items-start justify-between gap-4 py-2 border-b border-white/5 last:border-0">
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-200 font-medium">{item.item}</p>
+                        {item.note && <p className="text-xs text-gray-500 mt-0.5">{item.note}</p>}
+                      </div>
+                      <p className="text-sm font-bold text-purple-300 flex-shrink-0">Q {item.cost.toLocaleString('es-GT')}</p>
                     </div>
                   ))}
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-sm font-bold text-white uppercase tracking-wide">Total mensual</p>
+                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      Q {result.total.toLocaleString('es-GT')}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Warnings */}
-              {result.warnings.length > 0 && (
-                <div className="p-4 bg-yellow-500/5 border-b border-yellow-500/10 space-y-2">
-                  {result.warnings.map((w, i) => (
-                    <div key={i} className="flex gap-2 text-xs text-yellow-300">
-                      <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" /> {w}
+              {/* FEL notes */}
+              {result.notes.length > 0 && (
+                <div className="p-4 bg-amber-500/5 border-b border-amber-500/10 space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">Costos variables adicionales</p>
+                  {result.notes.map((n, i) => (
+                    <div key={i} className="flex gap-2 text-xs text-amber-300/80">
+                      <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" /> {n}
                     </div>
                   ))}
                 </div>
@@ -448,7 +669,7 @@ export function QuotationCalculator() {
               {/* Disclaimer */}
               <div className="px-6 py-3 bg-blue-500/5 border-b border-blue-500/10">
                 <p className="text-xs text-blue-300">
-                  ℹ Esta es una <strong>estimación</strong>. La cotización formal se enviará al formalizar el servicio.
+                  ℹ Esta es una <strong>estimación</strong>. La cotización formal y contrato se enviarán al formalizar el servicio.
                 </p>
               </div>
 
@@ -460,37 +681,34 @@ export function QuotationCalculator() {
                   className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-xl hover:from-purple-500 hover:to-violet-500 transition-all hover:-translate-y-0.5 shadow-lg text-sm"
                 >
                   <DownloadIcon size={15} />
-                  {pdfLoading ? 'Generando...' : 'Descargar PDF'}
+                  {pdfLoading ? 'Generando…' : 'Descargar PDF'}
                 </button>
-
                 <button
                   onClick={handleWA}
                   className="flex items-center justify-center gap-2 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl hover:bg-emerald-500/25 transition-all text-sm"
                 >
-                  <MessageCircleIcon size={15} />
-                  WhatsApp
+                  <MessageCircleIcon size={15} /> WhatsApp
                 </button>
-
                 <button
                   onClick={handleEmail}
                   className="flex items-center justify-center gap-2 py-3 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-xl hover:bg-purple-500/25 transition-all text-sm"
                 >
-                  <MailIcon size={15} />
-                  Correo
+                  <MailIcon size={15} /> Correo
                 </button>
               </div>
 
               {/* Recalculate */}
               <div className="px-6 pb-5 text-center">
                 <button
-                  onClick={() => setResult(null)}
+                  onClick={() => { setResult(null); setForm(EMPTY); }}
                   className="text-xs text-gray-600 hover:text-gray-400 transition-colors flex items-center gap-1 mx-auto"
                 >
-                  <ChevronRightIcon size={11} className="rotate-180" /> Modificar cotización
+                  <ChevronRightIcon size={11} className="rotate-180" /> Nueva cotización
                 </button>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </section>
