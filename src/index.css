@@ -127,6 +127,13 @@
   66%     { transform: translate(-20px, 10px) scale(0.95) rotate(-30deg); }
 }
 
+@keyframes floatItem {
+  0%   { opacity: 0; transform: translateY(0px); }
+  10%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-80px); }
+}
+
 .orb-float         { animation: orbFloat        14s ease-in-out infinite; }
 .orb-float-reverse { animation: orbFloatReverse 18s ease-in-out infinite; }
 .orb-float-slow    { animation: orbFloatSlow    22s ease-in-out infinite; }
