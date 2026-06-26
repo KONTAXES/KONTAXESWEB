@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import {
-  CalculatorIcon, CheckCircleIcon, AlertCircleIcon,
+  CheckCircleIcon, AlertCircleIcon,
   DownloadIcon, MessageCircleIcon,
-  ChevronLeftIcon, ArrowRightIcon, PhoneIcon, MailIcon,
+  ChevronLeftIcon, PhoneIcon, MailIcon,
 } from 'lucide-react';
 import {
   QuotationData, QuotationResult, ServiceType, Contribuyente,
   Regimen, Alcance, CertFEL,
   calculateQuotation, buildFormSummary, buildWAText, buildEmailBody,
   isContabilidadObligatoria, needsActivosQuestion,
-  REGIMEN_LABEL, CONTRIB_LABEL, SERVICE_LABEL, FORMS,
+  SERVICE_LABEL, FORMS,
 } from '../utils/quotationLogic';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 
@@ -20,7 +20,6 @@ type StepId =
   | 'alcance' | 'contabilidad' | 'impuestos' | 'cert-fel'
   | 'wa-fel' | 'contact' | 'contact-service';
 
-/* Returns only steps up to the next unanswered one — used for rendering */
 function getActiveSteps(form: QuotationData): StepId[] {
   const s: StepId[] = ['service-type'];
   if (!form.serviceType) return s;
@@ -49,79 +48,61 @@ function getActiveSteps(form: QuotationData): StepId[] {
   return s;
 }
 
-/* Returns the FULL expected path — used for progress bar denominator */
 function getFullStepList(form: QuotationData): StepId[] {
   if (!form.serviceType) return ['service-type'];
   if (form.serviceType !== 'contable') return ['service-type', 'contact-service'];
-
   const s: StepId[] = ['service-type', 'contribuyente', 'regimen'];
-
-  // Include activos if sociedad is selected or contribuyente not yet known
   const maybeActivos =
     !form.contribuyente ||
     (form.contribuyente === 'sociedad' && (!form.regimen || form.regimen === 'pequeño'));
   if (maybeActivos) s.push('activos');
-
   s.push('alcance');
   if (!isContabilidadObligatoria(form)) s.push('contabilidad');
   s.push('impuestos', 'cert-fel', 'wa-fel', 'contact');
   return s;
 }
 
-/* ── Option button ──────────────────────────────────────────────── */
-const Opt = ({
-  icon, label, sub, selected, badge, accent = 'purple', onClick,
+/* ── Carousel option card ───────────────────────────────────────── */
+const Card = ({
+  label, selected, onClick, delay = 0,
 }: {
-  icon: string; label: string; sub?: string; selected: boolean;
-  badge?: string; accent?: 'purple' | 'emerald' | 'sky' | 'amber';
-  onClick: () => void;
-}) => {
-  const ring: Record<string, string> = {
-    purple: 'border-purple-500/70 bg-purple-500/15 shadow-purple-500/10',
-    emerald: 'border-emerald-500/70 bg-emerald-500/15',
-    sky:    'border-sky-500/70 bg-sky-500/15',
-    amber:  'border-amber-500/70 bg-amber-500/15',
-  };
-  const check: Record<string, string> = {
-    purple: 'text-purple-400', emerald: 'text-emerald-400',
-    sky: 'text-sky-400', amber: 'text-amber-400',
-  };
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left flex items-center gap-4 px-5 py-4 rounded-2xl border-2 transition-all duration-200 ${
-        selected
-          ? `${ring[accent]} shadow-lg`
-          : 'border-white/8 bg-white/3 hover:border-white/20 hover:bg-white/6'
-      }`}
-    >
-      <span className="text-2xl flex-shrink-0 leading-none">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className={`font-semibold text-sm leading-snug ${selected ? 'text-white' : 'text-gray-200'}`}>{label}</p>
-        {sub && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{sub}</p>}
-      </div>
-      {badge && (
-        <span className="text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-          {badge}
-        </span>
+  label: string; selected: boolean; onClick: () => void; delay?: number;
+}) => (
+  <button
+    onClick={onClick}
+    style={{ animationDelay: `${delay}ms` }}
+    className={`animate-opt-in w-full text-left px-8 py-5 rounded-2xl font-bold text-lg transition-all duration-300 relative overflow-hidden group ${
+      selected
+        ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-2xl shadow-purple-500/40 border border-purple-400/40 scale-[1.02]'
+        : 'bg-white/4 border border-white/10 text-gray-200 hover:border-purple-500/50 hover:text-white hover:scale-[1.015] hover:bg-white/7'
+    }`}
+  >
+    {/* Shimmer sweep on hover */}
+    {!selected && (
+      <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/4 to-transparent pointer-events-none" />
+    )}
+    {selected && (
+      <span className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent pointer-events-none rounded-2xl" />
+    )}
+    <span className="relative flex items-center gap-3">
+      {selected && (
+        <span className="inline-flex w-2 h-2 rounded-full bg-white shadow-lg shadow-white/50 flex-shrink-0" />
       )}
-      {selected
-        ? <CheckCircleIcon size={18} className={`flex-shrink-0 ${check[accent]}`} />
-        : <div className="w-5 h-5 rounded-full border-2 border-white/15 flex-shrink-0" />
-      }
-    </button>
-  );
-};
+      {label}
+    </span>
+  </button>
+);
 
 /* ── Question header ────────────────────────────────────────────── */
-const Q = ({ icon, question, hint }: { icon: string; question: string; hint?: string }) => (
-  <div className="mb-7">
-    <span className="text-5xl mb-5 block leading-none">{icon}</span>
-    <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-2"
-      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+const Q = ({ question, hint }: { question: string; hint?: string }) => (
+  <div className="mb-8">
+    <h3
+      className="text-3xl md:text-4xl font-bold text-white leading-tight mb-2"
+      style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+    >
       {question}
     </h3>
-    {hint && <p className="text-gray-400 text-sm leading-relaxed">{hint}</p>}
+    {hint && <p className="text-gray-500 text-sm mt-1">{hint}</p>}
   </div>
 );
 
@@ -146,16 +127,15 @@ export function QuotationCalculator() {
   const fullSteps = getFullStepList(form);
   const stepId    = steps[Math.min(idx, steps.length - 1)];
   const prog      = fullSteps.length > 1 ? Math.round((idx / (fullSteps.length - 1)) * 100) : 0;
-  const stepLabel = `${idx + 1} de ${fullSteps.length}`;
+  const stepLabel = `${idx + 1} / ${fullSteps.length}`;
 
   const advance = () => { setBack(false); setAnimKey(k => k + 1); setIdx(i => i + 1); };
   const retreat = () => {
     if (idx === 0) return;
     setResult(null); setBack(true); setAnimKey(k => k + 1); setIdx(i => i - 1);
   };
-  const pick = (setter: () => void) => { setter(); setTimeout(advance, 280); };
+  const pick = (setter: () => void) => { setter(); setTimeout(advance, 260); };
 
-  /* Cascade-reset setters */
   const sServiceType   = (v: ServiceType)   => setForm({ ...EMPTY, serviceType: v, nombre: form.nombre, empresa: form.empresa, whatsapp: form.whatsapp, correo: form.correo });
   const sContribuyente = (v: Contribuyente) => setForm(p => ({ ...p, contribuyente: v, regimen: '', activosMayor25k: null, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
   const sRegimen       = (v: Regimen)       => setForm(p => ({ ...p, regimen: v, activosMayor25k: null, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
@@ -199,38 +179,20 @@ export function QuotationCalculator() {
 
   const handleReset = () => { setForm(EMPTY); setIdx(0); setAnimKey(k => k + 1); setBack(false); setResult(null); };
 
-  /* Whether the current step already has a value (allow skip-forward) */
-  const currentVal = (() => {
-    switch (stepId) {
-      case 'service-type':  return form.serviceType;
-      case 'contribuyente': return form.contribuyente;
-      case 'regimen':       return form.regimen;
-      case 'activos':       return form.activosMayor25k;
-      case 'alcance':       return form.alcance;
-      case 'contabilidad':  return form.contabilidadCompleta;
-      case 'impuestos':     return form.presentacionImpuestos;
-      case 'cert-fel':      return form.certFEL;
-      case 'wa-fel':        return form.whatsappFEL;
-      default: return null;
-    }
-  })();
-  const hasVal = currentVal !== null && currentVal !== '';
-  const canContinue = hasVal && stepId !== 'contact' && stepId !== 'contact-service' && idx < steps.length - 1;
-
   /* ── Step renderers ─────────────────────────────────────────────── */
 
   const stepServiceType = () => (
     <>
-      <Q icon="🎯" question="¿Qué servicio necesitas?" hint="Selecciona el tipo para comenzar tu cotización." />
+      <Q question="¿Qué servicio necesitas?" />
       <div className="space-y-3">
         {([
-          ['contable',           '📊', 'Servicios Contables',        'Contabilidad mensual, impuestos y asesoría'],
-          ['auditoria',          '🔍', 'Auditoría',                   'Revisión y certificación de estados financieros'],
-          ['outsourcing',        '🤝', 'Outsourcing',                 'Externalización de procesos contables'],
-          ['modulos-odoo',       '🧩', 'Módulos Odoo',                'Módulos personalizados para tu Odoo'],
-          ['implementacion-odoo','⚙️', 'Implementación Odoo',         'Te ayudamos (no somos partners oficiales)'],
-        ] as [ServiceType, string, string, string][]).map(([v, icon, label, sub]) => (
-          <Opt key={v} icon={icon} label={label} sub={sub}
+          ['contable',           'Servicios Contables'],
+          ['auditoria',          'Auditoría'],
+          ['outsourcing',        'Outsourcing'],
+          ['modulos-odoo',       'Módulos Odoo'],
+          ['implementacion-odoo','Implementación Odoo'],
+        ] as [ServiceType, string][]).map(([v, label], i) => (
+          <Card key={v} label={label} delay={i * 70}
             selected={form.serviceType === v}
             onClick={() => pick(() => sServiceType(v))} />
         ))}
@@ -239,27 +201,26 @@ export function QuotationCalculator() {
   );
 
   const stepContactService = () => {
-    const map: Record<string, [string, string]> = {
-      auditoria:          ['🔍', 'Requiere evaluación personalizada del alcance, documentación y períodos a auditar. Contáctanos para una propuesta a la medida.'],
-      outsourcing:        ['🤝', 'Se cotiza según volumen de operaciones, cantidad de colaboradores y procesos a externalizar. Hablemos.'],
-      'modulos-odoo':     ['🧩', 'Depende de los módulos requeridos, número de usuarios y configuraciones. Trabajamos con Odoo Community y Enterprise.'],
-      'implementacion-odoo': ['⚙️', 'Ayudamos con tu implementación de Odoo. La cotización depende del alcance y horas de consultoría.'],
-    };
-    const [icon, desc] = map[form.serviceType] ?? ['📋', 'Contáctanos para más información.'];
     const label = SERVICE_LABEL[form.serviceType as ServiceType] ?? '';
     return (
-      <div className="text-center py-4">
-        <span className="text-6xl mb-5 block">{icon}</span>
-        <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{label}</h3>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8 leading-relaxed">{desc}</p>
+      <div className="py-6 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-500/15 border border-purple-500/25 mb-6">
+          <span className="text-3xl">✉️</span>
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          {label}
+        </h3>
+        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8 leading-relaxed">
+          Este servicio requiere una propuesta personalizada. Contáctanos para coordinar.
+        </p>
         <div className="space-y-3 max-w-xs mx-auto">
           <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${label}`)}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full">
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all w-full">
             <PhoneIcon size={15} /> Contactar por WhatsApp
           </a>
           <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${label}`)}`}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm w-full">
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-white/4 border border-white/10 text-gray-300 font-bold rounded-2xl hover:bg-white/8 transition-all w-full">
             <MailIcon size={15} /> Enviar correo
           </a>
         </div>
@@ -269,66 +230,44 @@ export function QuotationCalculator() {
 
   const stepContribuyente = () => (
     <>
-      <Q icon="🏢" question="¿Quién es el contribuyente?" hint="¿La responsabilidad legal recae en una persona natural o jurídica?" />
+      <Q question="¿Quién es el contribuyente?" />
+      <div className="space-y-3">
+        <Card label="Persona / Comerciante Individual" delay={0}
+          selected={form.contribuyente === 'individual'}
+          onClick={() => pick(() => sContribuyente('individual'))} />
+        <Card label="Sociedad / Empresa" delay={70}
+          selected={form.contribuyente === 'sociedad'}
+          onClick={() => pick(() => sContribuyente('sociedad'))} />
+      </div>
+    </>
+  );
+
+  const stepRegimen = () => (
+    <>
+      <Q question="¿Cuál es tu régimen fiscal?" />
       <div className="space-y-3">
         {([
-          ['individual', '👤', 'Persona / Comerciante Individual', 'Responsabilidad recae en una persona natural'],
-          ['sociedad',   '🏛️', 'Sociedad / Empresa (S.A.)',        'Responsabilidad recae en una persona jurídica'],
-        ] as [Contribuyente, string, string, string][]).map(([v, icon, label, sub]) => (
-          <Opt key={v} icon={icon} label={label} sub={sub}
-            selected={form.contribuyente === v}
-            onClick={() => pick(() => sContribuyente(v))} />
+          ['pequeño',  'Pequeño Contribuyente'],
+          ['opcional', 'Régimen Opcional (IVA 12%)'],
+          ['general',  'Régimen General (IVA 12% + ISR 25%)'],
+        ] as [Regimen, string][]).map(([v, label], i) => (
+          <Card key={v} label={label} delay={i * 70}
+            selected={form.regimen === v}
+            onClick={() => pick(() => sRegimen(v))} />
         ))}
       </div>
     </>
   );
 
-  const stepRegimen = () => {
-    const bases: Record<Regimen, number> = { pequeño: 250, opcional: 450, general: 550 };
-    const extra = form.contribuyente === 'sociedad' ? 500 : 0;
-    return (
-      <>
-        <Q icon="📋" question="¿Cuál es tu régimen fiscal?" hint="¿Bajo qué régimen tributas actualmente?" />
-        <div className="space-y-3">
-          {([
-            ['pequeño', 'Pequeño Contribuyente', 'IVA 5% · 1 formulario · Ingresos < Q150,000/año'],
-            ['opcional', 'Régimen Opcional (IVA 12% + ISR 5–7%)', 'IVA mensual + ISR trimestral · 2 formularios'],
-            ['general',  'Régimen General (IVA 12% + ISR 25%)',   'IVA mensual + ISR sobre utilidades · 4 formularios'],
-          ] as [Regimen, string, string][]).map(([v, label, sub]) => (
-            <button key={v} onClick={() => pick(() => sRegimen(v))}
-              className={`w-full text-left flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border-2 transition-all duration-200 ${
-                form.regimen === v
-                  ? 'border-purple-500/70 bg-purple-500/15 shadow-lg'
-                  : 'border-white/8 bg-white/3 hover:border-white/20 hover:bg-white/6'
-              }`}>
-              <div className="flex-1">
-                <p className={`font-semibold text-sm ${form.regimen === v ? 'text-white' : 'text-gray-200'}`}>{label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
-              </div>
-              <div className="text-right flex-shrink-0 mr-2">
-                <p className="text-sm font-bold text-purple-300">desde Q{bases[v] + extra}</p>
-                <p className="text-xs text-gray-600">/mes</p>
-              </div>
-              {form.regimen === v
-                ? <CheckCircleIcon size={18} className="text-purple-400 flex-shrink-0" />
-                : <div className="w-5 h-5 rounded-full border-2 border-white/15 flex-shrink-0" />
-              }
-            </button>
-          ))}
-        </div>
-      </>
-    );
-  };
-
   const stepActivos = () => (
     <>
-      <Q icon="💰" question="¿Tus activos superan Q25,000?" hint="Determina si la contabilidad completa es legalmente obligatoria para tu sociedad." />
+      <Q question="¿Tus activos superan Q25,000?" />
       <div className="space-y-3">
-        <Opt icon="✅" label="Sí, superan Q25,000" sub="Contabilidad completa obligatoria por ley · +Q500/mes"
-          selected={form.activosMayor25k === true} accent="amber"
+        <Card label="Sí, superan Q25,000" delay={0}
+          selected={form.activosMayor25k === true}
           onClick={() => pick(() => sActivos(true))} />
-        <Opt icon="❌" label="No, son Q25,000 o menos" sub="Contabilidad completa opcional"
-          selected={form.activosMayor25k === false} accent="sky"
+        <Card label="No, son Q25,000 o menos" delay={70}
+          selected={form.activosMayor25k === false}
           onClick={() => pick(() => sActivos(false))} />
       </div>
     </>
@@ -336,13 +275,13 @@ export function QuotationCalculator() {
 
   const stepAlcance = () => (
     <>
-      <Q icon="🧭" question="¿A qué se dedica tu negocio?" hint="Define el alcance principal de tus actividades." />
+      <Q question="¿A qué se dedica tu negocio?" />
       <div className="space-y-3">
-        <Opt icon="💼" label="Servicios" sub="Técnicos, profesionales, consultoría, etc."
+        <Card label="Prestación de servicios" delay={0}
           selected={form.alcance === 'servicios'}
           onClick={() => pick(() => sAlcance('servicios'))} />
-        <Opt icon="🛒" label="Compra-venta de bienes" sub="Sistema de inventarios y costo de ventas · +Q500/mes"
-          selected={form.alcance === 'compra-venta'} accent="emerald"
+        <Card label="Compra-venta de bienes" delay={70}
+          selected={form.alcance === 'compra-venta'}
           onClick={() => pick(() => sAlcance('compra-venta'))} />
       </div>
     </>
@@ -350,13 +289,13 @@ export function QuotationCalculator() {
 
   const stepContabilidad = () => (
     <>
-      <Q icon="📒" question="¿Deseas contabilidad completa?" hint="No es fiscalmente obligatorio, pero es recomendado financieramente para una gestión sólida." />
+      <Q question="¿Deseas contabilidad completa?" hint="Recomendado para una gestión financiera sólida" />
       <div className="space-y-3">
-        <Opt icon="📊" label="Sí, con FinanzIA (+Q500/mes)" sub="Catálogo de cuentas, asientos y estados financieros en FinanzIA"
+        <Card label="Sí, con contabilidad completa" delay={0}
           selected={form.contabilidadCompleta === true}
           onClick={() => pick(() => sContabilidad(true))} />
-        <Opt icon="⏩" label="No por ahora" sub="Solo contabilidad básica sin registro completo"
-          selected={form.contabilidadCompleta === false} accent="sky"
+        <Card label="No por ahora" delay={70}
+          selected={form.contabilidadCompleta === false}
           onClick={() => pick(() => sContabilidad(false))} />
       </div>
     </>
@@ -365,31 +304,23 @@ export function QuotationCalculator() {
   const stepImpuestos = () => {
     const reg = form.regimen as Regimen;
     const n = FORMS[reg];
-    const cost = n * 100;
     const obligatoria = isContabilidadObligatoria(form);
-    const formDesc: Record<Regimen, string> = {
-      pequeño:  'Declaración IVA 5% (Form. 2046)',
-      opcional: 'IVA mensual (F2000) + ISR trimestral (F2189)',
-      general:  'IVA mensual + ISR + ISO + cierre anual',
-    };
     return (
       <>
         {obligatoria && (
           <div className="flex items-start gap-2 mb-5 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
             <CheckCircleIcon size={14} className="text-purple-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-purple-300 leading-relaxed">
-              <strong>Contabilidad completa con FinanzIA incluida automáticamente</strong> — obligatoria por ley para tu perfil.
+              Contabilidad completa incluida automáticamente — obligatoria por ley para tu perfil.
             </p>
           </div>
         )}
-        <Q icon="🧾" question="¿Presentamos tus impuestos?"
-          hint={`${n} ${n === 1 ? 'formulario' : 'formularios'} — ${formDesc[reg]} · +Q${cost}/mes si Sí`} />
+        <Q question="¿Presentamos tus impuestos?" hint={`${n} formulario${n > 1 ? 's' : ''} ante la SAT`} />
         <div className="space-y-3">
-          <Opt icon="✅" label={`Sí (+Q${cost}/mes)`}
-            sub={`KONTAXES presenta ${n === 1 ? 'tu formulario' : 'tus formularios'} ante la SAT`}
-            selected={form.presentacionImpuestos === true} accent="emerald"
+          <Card label="Sí, que KONTAXES los presente" delay={0}
+            selected={form.presentacionImpuestos === true}
             onClick={() => pick(() => sImpuestos(true))} />
-          <Opt icon="⏩" label="No, lo gestiono yo" sub="Presentas tus formularios directamente"
+          <Card label="No, los gestiono yo" delay={70}
             selected={form.presentacionImpuestos === false}
             onClick={() => pick(() => sImpuestos(false))} />
         </div>
@@ -399,35 +330,29 @@ export function QuotationCalculator() {
 
   const stepCertFEL = () => (
     <>
-      <Q icon="📄" question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
+      <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT" />
       <div className="space-y-3">
-        <Opt icon="⏩" label="No necesito por ahora" sub="Puedes activarlo en cualquier momento"
+        <Card label="No por ahora" delay={0}
           selected={form.certFEL === 'ninguno'}
           onClick={() => pick(() => sCertFEL('ninguno'))} />
-        <Opt icon="🟣" label="Vía Odoo (CORPOSISTEMAS, S.A.)" sub="Q375 implementación (único) + Q0.20 por DTE emitido"
-          badge="popular" selected={form.certFEL === 'odoo'}
+        <Card label="Vía Odoo (CORPOSISTEMAS)" delay={70}
+          selected={form.certFEL === 'odoo'}
           onClick={() => pick(() => sCertFEL('odoo'))} />
-        <Opt icon="🟢" label="Vía FinanzIA" sub="Sin implementación · Q0.20 por DTE emitido"
-          selected={form.certFEL === 'finanz-ia'} accent="emerald"
+        <Card label="Vía FinanzIA" delay={140}
+          selected={form.certFEL === 'finanz-ia'}
           onClick={() => pick(() => sCertFEL('finanz-ia'))} />
       </div>
-      {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
-        <p className="flex items-start gap-1.5 text-xs text-amber-400/70 mt-4">
-          <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
-          El Q0.20/DTE es variable y se factura mensualmente por separado.
-        </p>
-      )}
     </>
   );
 
   const stepWAFel = () => (
     <>
-      <Q icon="📱" question="¿Facturas por WhatsApp?" hint="FELSimple — Emite facturas electrónicas certificadas directo desde WhatsApp en segundos." />
+      <Q question="¿Facturas por WhatsApp?" hint="FELSimple — emisión de facturas certificadas desde WhatsApp" />
       <div className="space-y-3">
-        <Opt icon="💬" label="Sí, quiero FELSimple (+Q50/mes)" sub="Factura desde WhatsApp, certifica con la SAT al instante"
-          selected={form.whatsappFEL === true} accent="emerald"
+        <Card label="Sí, quiero FELSimple" delay={0}
+          selected={form.whatsappFEL === true}
           onClick={() => pick(() => sWhatsappFEL(true))} />
-        <Opt icon="⏩" label="No por ahora" sub="Puedes activarlo después"
+        <Card label="No por ahora" delay={70}
           selected={form.whatsappFEL === false}
           onClick={() => pick(() => sWhatsappFEL(false))} />
       </div>
@@ -438,31 +363,33 @@ export function QuotationCalculator() {
     const preview = calculateQuotation(form);
     return (
       <>
-        <Q icon="👤" question="¿Tus datos de contacto?" hint="Opcional — los incluimos en tu cotización y PDF." />
+        <Q question="¿Tus datos de contacto?" hint="Opcional — para personalizar tu cotización y PDF" />
         <div className="grid grid-cols-2 gap-3 mb-6">
           {([
-            { k: 'nombre'   as const, p: 'Nombre completo',    t: 'text'  },
-            { k: 'empresa'  as const, p: 'Nombre de empresa',  t: 'text'  },
-            { k: 'whatsapp' as const, p: 'WhatsApp (+502…)',    t: 'tel'   },
-            { k: 'correo'   as const, p: 'Correo electrónico', t: 'email' },
+            { k: 'nombre'   as const, p: 'Nombre completo',   t: 'text'  },
+            { k: 'empresa'  as const, p: 'Empresa',           t: 'text'  },
+            { k: 'whatsapp' as const, p: 'WhatsApp',          t: 'tel'   },
+            { k: 'correo'   as const, p: 'Correo electrónico',t: 'email' },
           ]).map(f => (
             <input key={f.k} type={f.t} placeholder={f.p}
               value={form[f.k] || ''}
               onChange={e => sContact(f.k, e.target.value)}
-              className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all" />
+              className="px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all" />
           ))}
         </div>
         {preview.total > 0 && (
-          <div className="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-purple-500/8 border border-purple-500/15 mb-5">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Estimado preliminar</span>
-            <span className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Q {preview.total.toLocaleString('es-GT')}<span className="text-gray-500 text-sm font-normal">/mes</span>
+          <div className="flex items-center justify-between px-5 py-4 rounded-2xl bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 mb-5">
+            <span className="text-xs font-bold uppercase tracking-widest text-purple-400">Estimado</span>
+            <span className="text-3xl font-bold text-white tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Q {preview.total.toLocaleString('es-GT')}
+              <span className="text-gray-500 text-base font-normal ml-1">/mes</span>
             </span>
           </div>
         )}
         <button onClick={handleCalc}
-          className="w-full py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base flex items-center justify-center gap-2">
-          <CalculatorIcon size={20} /> Ver mi cotización →
+          className="w-full py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-xl hover:shadow-purple-500/40 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base relative overflow-hidden group">
+          <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <span className="relative">Ver mi cotización →</span>
         </button>
       </>
     );
@@ -490,98 +417,103 @@ export function QuotationCalculator() {
     const summary = buildFormSummary(form);
     return (
       <div className="animate-fade-in">
-        {/* Total header */}
-        <div className="bg-gradient-to-r from-purple-900/70 to-violet-900/50 px-8 py-7 border-b border-purple-500/20">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-1">Tu Cotización Estimada</p>
-              <p className="text-gray-400 text-sm">Servicios contables mensuales · IVA incluido</p>
-              {form.nombre && (
-                <p className="text-white font-semibold text-sm mt-2">
-                  {form.nombre}{form.empresa ? ` — ${form.empresa}` : ''}
-                </p>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500 mb-0.5">Total mensual</p>
-              <p className="text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Q {result!.total.toLocaleString('es-GT')}
-                <span className="text-gray-500 text-lg font-normal">.00</span>
+
+        {/* Hero total */}
+        <div className="relative overflow-hidden px-8 py-10 border-b border-white/8">
+          {/* Background glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-950/60 via-violet-950/40 to-transparent pointer-events-none" />
+          <div className="absolute -top-8 -right-8 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative text-center">
+            <p className="text-xs font-bold uppercase tracking-[3px] text-purple-400 mb-4">Cotización Estimada</p>
+            <p className="text-7xl font-black text-white tabular-nums mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Q {result!.total.toLocaleString('es-GT')}
+            </p>
+            <p className="text-gray-500 text-sm">por mes · IVA incluido</p>
+            {form.nombre && (
+              <p className="text-purple-300 text-sm font-medium mt-3">
+                {form.nombre}{form.empresa ? ` · ${form.empresa}` : ''}
               </p>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Summary of what was chosen */}
+        {/* What was selected */}
         {summary.length > 0 && (
-          <div className="px-8 py-5 border-b border-white/5 bg-white/2">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Lo que seleccionaste</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="px-8 py-6 border-b border-white/6">
+            <p className="text-xs font-bold uppercase tracking-[2px] text-gray-500 mb-4">Servicios seleccionados</p>
+            <div className="space-y-2">
               {summary.map((s, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300">
-                  <CheckCircleIcon size={11} className="text-purple-400 flex-shrink-0" />
-                  {s}
-                </span>
+                <div key={i} className="flex items-center gap-3">
+                  <CheckCircleIcon size={14} className="text-purple-400 flex-shrink-0" />
+                  <span className="text-sm text-gray-300">{s}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
 
         {/* Cost breakdown */}
-        <div className="px-8 py-6 border-b border-white/5">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Desglose de servicios</p>
+        <div className="px-8 py-6 border-b border-white/6">
+          <p className="text-xs font-bold uppercase tracking-[2px] text-gray-500 mb-4">Desglose de costos</p>
           <div className="space-y-3">
             {result!.breakdown.map((item, i) => (
-              <div key={i} className="flex items-start justify-between gap-4 pb-3 border-b border-white/5 last:border-0 last:pb-0">
+              <div key={i} className="flex items-baseline justify-between gap-4">
                 <div className="flex-1">
-                  <p className="text-sm text-gray-200 font-medium leading-snug">{item.item}</p>
-                  {item.note && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{item.note}</p>}
+                  <p className="text-sm text-gray-300 leading-snug">{item.item}</p>
+                  {item.note && <p className="text-xs text-gray-600 mt-0.5">{item.note}</p>}
                 </div>
-                <p className="text-sm font-bold text-purple-300 flex-shrink-0 tabular-nums">Q {item.cost.toLocaleString('es-GT')}</p>
+                <p className="text-sm font-bold text-purple-300 tabular-nums flex-shrink-0">
+                  Q {item.cost.toLocaleString('es-GT')}
+                </p>
               </div>
             ))}
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-sm font-bold text-white uppercase tracking-wide">Total mensual</p>
-              <p className="text-2xl font-bold text-white tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <div className="flex items-center justify-between pt-3 border-t border-white/8 mt-1">
+              <p className="text-sm font-bold text-white">Total mensual</p>
+              <p className="text-xl font-black text-white tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Q {result!.total.toLocaleString('es-GT')}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Variable cost notes */}
+        {/* Variable notes */}
         {result!.notes.length > 0 && (
-          <div className="px-8 py-4 border-b border-amber-500/10 bg-amber-500/5">
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">Costos variables adicionales (no incluidos en el total)</p>
+          <div className="px-8 py-4 bg-amber-500/5 border-b border-amber-500/10">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-400/80 mb-2">Costos adicionales variables</p>
             {result!.notes.map((n, i) => (
-              <div key={i} className="flex gap-2 text-xs text-amber-300/80 leading-relaxed mt-1">
-                <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" /> {n}
+              <div key={i} className="flex gap-2 mt-1">
+                <AlertCircleIcon size={13} className="text-amber-400/70 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-300/70 leading-relaxed">{n}</p>
               </div>
             ))}
           </div>
         )}
 
         {/* Disclaimer */}
-        <div className="px-8 py-3 bg-blue-500/5 border-b border-blue-500/10">
-          <p className="text-xs text-blue-300">
-            ℹ Esta es una <strong>estimación</strong>. La cotización formal y contrato se enviarán al formalizar el servicio.
+        <div className="px-8 py-3 border-b border-white/5">
+          <p className="text-xs text-gray-600">
+            Esta es una estimación. La cotización formal y contrato se enviarán al confirmar el servicio.
           </p>
         </div>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <div className="px-8 py-6 grid sm:grid-cols-2 gap-3">
           <button onClick={handlePDF} disabled={pdfLoading}
-            className="flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-2xl hover:from-purple-500 hover:to-violet-500 transition-all hover:-translate-y-0.5 shadow-lg text-sm">
-            <DownloadIcon size={15} /> {pdfLoading ? 'Generando…' : 'Descargar PDF'}
+            className="relative overflow-hidden group flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-2xl hover:from-purple-500 hover:to-violet-500 transition-all hover:-translate-y-0.5 shadow-xl shadow-purple-500/20 text-sm">
+            <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            <DownloadIcon size={15} />
+            <span className="relative">{pdfLoading ? 'Generando…' : 'Descargar PDF'}</span>
           </button>
           <button onClick={handleWA}
-            className="flex items-center justify-center gap-2 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm">
-            <MessageCircleIcon size={15} /> Enviar por WhatsApp
+            className="relative overflow-hidden group flex items-center justify-center gap-2 py-4 bg-emerald-500/12 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/20 hover:-translate-y-0.5 transition-all shadow-lg text-sm">
+            <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
+            <MessageCircleIcon size={15} />
+            <span className="relative">Enviar por WhatsApp</span>
           </button>
         </div>
 
         <div className="px-8 pb-6 text-center">
-          <button onClick={handleReset} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+          <button onClick={handleReset} className="text-xs text-gray-700 hover:text-gray-400 transition-colors">
             ← Nueva cotización
           </button>
         </div>
@@ -591,70 +523,78 @@ export function QuotationCalculator() {
 
   /* ── Layout ─────────────────────────────────────────────────────── */
   return (
-    <section id="cotizador" className="py-24 bg-gray-950 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/8 to-transparent pointer-events-none" />
-      <div className="absolute inset-0 pointer-events-none grid-bg opacity-25" />
-      <div className="absolute top-20 right-10 w-72 h-72 bg-purple-700/6 rounded-full blur-3xl orb-float pointer-events-none" />
-      <div className="absolute bottom-20 left-10 w-56 h-56 bg-violet-700/5 rounded-full blur-3xl orb-float-reverse pointer-events-none" />
+    <section id="cotizador" className="py-24 relative overflow-hidden bg-gray-950">
+      {/* Ambient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
+      <div className="absolute top-24 right-0 w-96 h-96 bg-purple-700/8 rounded-full blur-3xl orb-float pointer-events-none" />
+      <div className="absolute bottom-24 left-0 w-80 h-80 bg-violet-700/6 rounded-full blur-3xl orb-float-reverse pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-purple-900/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 relative">
 
-        {/* Section header */}
-        <div className="text-center mb-10 reveal">
-          <span className="inline-block text-xs font-bold tracking-widest uppercase text-purple-400 mb-3">
+        {/* Header */}
+        <div className="text-center mb-12 reveal">
+          <span className="inline-block text-xs font-bold tracking-[3px] uppercase text-purple-400 mb-3">
             Precios Personalizados
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-3"
+          <h2 className="text-5xl md:text-6xl font-black text-white mb-3"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Cotizador
           </h2>
-          <p className="text-gray-400 text-lg">Obtén tu estimación en segundos</p>
+          <p className="text-gray-500">Responde las preguntas y obtén tu precio al instante</p>
         </div>
 
-        {/* Card */}
-        <div className="reveal bg-white/3 border border-white/8 rounded-3xl overflow-hidden shadow-2xl">
-          {result ? renderResult() : (
-            <>
-              {/* Progress bar row */}
-              <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/5">
-                <button onClick={retreat} disabled={idx === 0}
-                  className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0 ${
-                    idx > 0
-                      ? 'bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer'
-                      : 'opacity-0 pointer-events-none'
-                  }`}>
-                  <ChevronLeftIcon size={16} />
-                </button>
+        {/* Wizard card */}
+        <div className="reveal relative">
+          {/* Card glow border */}
+          <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-purple-500/20 via-transparent to-violet-500/10 pointer-events-none" />
 
-                <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-violet-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(prog, 4)}%` }}
-                  />
-                </div>
+          <div className="relative bg-gray-900/80 backdrop-blur-xl border border-white/8 rounded-3xl overflow-hidden shadow-2xl shadow-purple-950/50">
+            {result ? renderResult() : (
+              <>
+                {/* Progress bar */}
+                <div className="flex items-center gap-3 px-6 pt-5 pb-4">
+                  <button onClick={retreat} disabled={idx === 0}
+                    className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0 ${
+                      idx > 0
+                        ? 'bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer'
+                        : 'opacity-0 pointer-events-none'
+                    }`}>
+                    <ChevronLeftIcon size={16} />
+                  </button>
 
-                <span className="text-xs text-gray-600 tabular-nums flex-shrink-0 w-12 text-right">
-                  {stepLabel}
-                </span>
-              </div>
-
-              {/* Animated slide */}
-              <div key={animKey} className={back ? 'animate-slide-in-back' : 'animate-slide-in'}>
-                <div className="px-8 pt-8 pb-8 min-h-[420px] flex flex-col">
-                  <div className="flex-1">
-                    {renderStep()}
+                  <div className="flex-1 h-1 bg-white/6 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${Math.max(prog, 3)}%`,
+                        background: 'linear-gradient(90deg, #7c3aed, #a855f7, #7c3aed)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmerBar 2.5s linear infinite',
+                      }}
+                    />
                   </div>
 
-                  {canContinue && (
-                    <button onClick={advance}
-                      className="w-full mt-5 py-3 text-sm font-medium text-gray-500 hover:text-gray-200 border border-white/8 hover:border-white/20 rounded-2xl transition-all flex items-center justify-center gap-2">
-                      Continuar con esta selección <ArrowRightIcon size={14} />
-                    </button>
-                  )}
+                  <span className="text-xs text-gray-600 tabular-nums flex-shrink-0 w-12 text-right font-medium">
+                    {stepLabel}
+                  </span>
                 </div>
-              </div>
-            </>
-          )}
+
+                {/* Animated slide content */}
+                <div
+                  key={animKey}
+                  className={back ? 'animate-slide-in-back' : 'animate-slide-in'}
+                >
+                  <div className="px-8 pt-6 pb-8 min-h-[460px] flex flex-col">
+                    <div className="flex-1">
+                      {renderStep()}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
       </div>
