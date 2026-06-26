@@ -4,62 +4,61 @@ import * as THREE from 'three';
 // ── Mini financial chart components ───────────────────────────────
 
 const BAR_SETS = [
-  [28, 44, 18, 36, 40, 22, 34],
-  [40, 22, 50, 30, 44, 36, 28],
-  [18, 38, 28, 48, 22, 42, 32],
-  [44, 32, 48, 24, 40, 36, 44],
+  [42, 66, 28, 55, 60, 33, 50],
+  [60, 33, 75, 46, 66, 55, 42],
+  [28, 57, 42, 72, 33, 64, 48],
+  [66, 48, 72, 36, 60, 55, 66],
 ];
 const COLORS_BAR = ['#7c3aed', '#a855f7', '#7c3aed', '#10b981', '#7c3aed', '#a855f7', '#6d28d9'];
 
 const MiniBar = ({ d }: { d: number[] }) => (
-  <svg width="64" height="52" viewBox="0 0 64 52" fill="none">
+  <svg width="95" height="78" viewBox="0 0 95 78" fill="none">
     {d.map((h, i) => (
-      <rect key={i} x={i * 9 + 0.5} y={52 - h} width="7" height={h}
-        fill={COLORS_BAR[i]} rx="1.5" opacity="0.9" />
+      <rect key={i} x={i * 14 + 0.5} y={78 - h} width="11" height={h}
+        fill={COLORS_BAR[i]} rx="2.5" opacity="0.92" />
     ))}
-    <line x1="0" y1="52" x2="64" y2="52" stroke="#9333ea" strokeWidth="0.5" opacity="0.4" />
+    <line x1="0" y1="78" x2="95" y2="78" stroke="#9333ea" strokeWidth="0.8" opacity="0.4" />
   </svg>
 );
 
 const LINE_PTS = [
-  [[0,32],[10,20],[20,28],[30,12],[40,18],[50,6],[60,14]],
-  [[0,14],[10,24],[20,10],[30,22],[40,8],[50,18],[60,6]],
-  [[0,24],[10,12],[20,30],[30,8],[40,22],[50,14],[60,18]],
+  [[0,48],[14,30],[28,42],[42,17],[56,26],[70,8],[84,20]],
+  [[0,20],[14,36],[28,15],[42,32],[56,11],[70,26],[84,9]],
+  [[0,34],[14,18],[28,44],[42,11],[56,32],[70,20],[84,26]],
 ];
 
 const MiniLine = ({ pts, id }: { pts: number[][]; id: string }) => {
-  const d = pts.map(([x,y]) => `${x},${y}`).join(' ');
-  const area = `M0,40 L${d.replace(/,/g,' L').split(' L').map((p,i) => pts[i]?.join(',') ?? p).join(' L')} L60,40 Z`;
+  const points = pts.map(([x,y]) => `${x},${y}`).join(' ');
+  const areaPath = `M${pts[0][0]},58 ` + pts.map(([x,y]) => `L${x},${y}`).join(' ') + ` L${pts[pts.length-1][0]},58 Z`;
   return (
-    <svg width="64" height="44" viewBox="0 0 64 44" fill="none">
+    <svg width="90" height="65" viewBox="0 0 90 65" fill="none">
       <defs>
         <linearGradient id={`lg-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.3" />
+          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.38" />
           <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={`M${d.split(' ').map((p,i) => pts[i]?.join(',') ?? p).join(' L')} L60,40 L0,40 Z`}
-        fill={`url(#lg-${id})`} />
-      <polyline points={d} stroke="#a855f7" strokeWidth="2" strokeLinejoin="round" />
+      <path d={areaPath} fill={`url(#lg-${id})`} />
+      <polyline points={points} stroke="#a855f7" strokeWidth="2.8" strokeLinejoin="round" />
       {pts.map(([x,y], i) => (
-        <circle key={i} cx={x} cy={y} r="2.5" fill="#a855f7" />
+        <circle key={i} cx={x} cy={y} r="4" fill="#a855f7" />
       ))}
     </svg>
   );
 };
 
-const C = 100.53; // 2π × 16
+const C = 138.2; // 2π × 22
 const MiniDonut = ({ s1 = '#7c3aed', s2 = '#a855f7', s3 = '#10b981', p1 = 0.50, p2 = 0.30 }: {
   s1?: string; s2?: string; s3?: string; p1?: number; p2?: number;
 }) => (
-  <svg width="52" height="52" viewBox="0 0 52 52">
-    <circle cx="26" cy="26" r="16" fill="none" strokeWidth="9" stroke="#0d0118" />
-    <circle cx="26" cy="26" r="16" fill="none" strokeWidth="6.5" stroke={s1}
-      strokeDasharray={`${C * p1} ${C}`} strokeDashoffset="0" transform="rotate(-90 26 26)" />
-    <circle cx="26" cy="26" r="16" fill="none" strokeWidth="6.5" stroke={s2}
-      strokeDasharray={`${C * p2} ${C}`} strokeDashoffset={`${-C * p1}`} transform="rotate(-90 26 26)" />
-    <circle cx="26" cy="26" r="16" fill="none" strokeWidth="6.5" stroke={s3}
-      strokeDasharray={`${C * (1 - p1 - p2)} ${C}`} strokeDashoffset={`${-C * (p1 + p2)}`} transform="rotate(-90 26 26)" />
+  <svg width="76" height="76" viewBox="0 0 76 76">
+    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="13" stroke="rgba(147,51,234,0.14)" />
+    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="10" stroke={s1}
+      strokeDasharray={`${C * p1} ${C}`} strokeDashoffset="0" transform="rotate(-90 38 38)" />
+    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="10" stroke={s2}
+      strokeDasharray={`${C * p2} ${C}`} strokeDashoffset={`${-C * p1}`} transform="rotate(-90 38 38)" />
+    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="10" stroke={s3}
+      strokeDasharray={`${C * (1 - p1 - p2)} ${C}`} strokeDashoffset={`${-C * (p1 + p2)}`} transform="rotate(-90 38 38)" />
   </svg>
 );
 
@@ -73,43 +72,85 @@ const MiniPie = ({ pcts = [0.42,0.28,0.18,0.12], cols = ['#7c3aed','#a855f7','#1
 }) => {
   let a = -Math.PI / 2;
   return (
-    <svg width="52" height="52" viewBox="0 0 52 52">
-      {pcts.map((p, i) => { const s = a; a += p * 2 * Math.PI; return <path key={i} d={arcPath(26,26,22,s,a)} fill={cols[i]} />; })}
+    <svg width="76" height="76" viewBox="0 0 76 76">
+      {pcts.map((p, i) => { const s = a; a += p * 2 * Math.PI; return <path key={i} d={arcPath(38,38,32,s,a)} fill={cols[i]} />; })}
     </svg>
   );
 };
 
 const MiniCalc = ({ val, lbl = 'CALC' }: { val: string; lbl?: string }) => (
-  <div className="rounded-xl border border-purple-500/30 bg-gray-950/75 px-3 py-2.5 font-mono text-right backdrop-blur-sm min-w-[92px] shadow-lg shadow-purple-950/50">
-    <div className="text-[8px] text-purple-600 uppercase tracking-[2px] mb-0.5">{lbl}</div>
-    <div className="text-purple-200 text-sm font-bold tabular-nums">{val}</div>
+  <div style={{
+    borderRadius: 14, border: '1px solid rgba(167,139,250,0.45)',
+    background: 'rgba(109,40,217,0.28)', padding: '9px 16px',
+    fontFamily: 'monospace', textAlign: 'right', minWidth: 126, backdropFilter: 'blur(10px)',
+  }}>
+    <div style={{ fontSize: 9, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 3 }}>{lbl}</div>
+    <div style={{ color: '#f3e8ff', fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{val}</div>
   </div>
 );
 
 const MiniStatement = () => (
-  <div className="font-mono text-[9px] leading-relaxed text-left min-w-[128px] backdrop-blur-sm">
-    <div className="text-purple-400 font-bold text-[10px] mb-1 uppercase tracking-wider border-b border-purple-500/25 pb-0.5">
+  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 156, backdropFilter: 'blur(10px)' }}>
+    <div style={{ color: '#c084fc', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(147,51,234,0.25)', paddingBottom: 3 }}>
       Estado de Resultados
     </div>
-    <div className="flex justify-between text-gray-500 gap-4"><span>Ingresos</span><span>Q 48,000</span></div>
-    <div className="flex justify-between text-gray-500 gap-4"><span>(-) Costos</span><span>Q 12,500</span></div>
-    <div className="flex justify-between text-gray-500 gap-4 mt-0.5"><span>(-) Gastos</span><span>Q 4,200</span></div>
-    <div className="flex justify-between text-purple-300 font-bold border-t border-purple-500/20 mt-1 pt-0.5 gap-4">
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>Ingresos</span><span>Q 48,000</span></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>(-) Costos</span><span>Q 12,500</span></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>(-) Gastos</span><span>Q 4,200</span></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f3e8ff', fontWeight: 800, borderTop: '1px solid rgba(147,51,234,0.22)', marginTop: 3, paddingTop: 3, gap: 18 }}>
       <span>Utilidad</span><span>Q 31,300</span>
     </div>
   </div>
 );
 
 const MiniBalance = () => (
-  <div className="font-mono text-[9px] leading-relaxed text-left min-w-[120px] backdrop-blur-sm">
-    <div className="text-emerald-400 font-bold text-[10px] mb-1 uppercase tracking-wider border-b border-emerald-500/25 pb-0.5">
+  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 148, backdropFilter: 'blur(10px)' }}>
+    <div style={{ color: '#34d399', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(16,185,129,0.25)', paddingBottom: 3 }}>
       Balance General
     </div>
-    <div className="flex justify-between text-gray-500 gap-3"><span>Total Activo</span><span>Q 95,400</span></div>
-    <div className="flex justify-between text-gray-500 gap-3"><span>Pasivo</span><span>Q 28,700</span></div>
-    <div className="flex justify-between text-emerald-300 font-bold border-t border-emerald-500/20 mt-1 pt-0.5 gap-3">
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6ee7b7', gap: 14 }}><span>Total Activo</span><span>Q 95,400</span></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6ee7b7', gap: 14 }}><span>Pasivo</span><span>Q 28,700</span></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a7f3d0', fontWeight: 800, borderTop: '1px solid rgba(16,185,129,0.22)', marginTop: 3, paddingTop: 3, gap: 14 }}>
       <span>Capital</span><span>Q 66,700</span>
     </div>
+  </div>
+);
+
+// ── Brand logo chips ────────────────────────────────────────────────
+
+const LogoOdoo = () => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(113,75,103,0.28)', border: '1px solid rgba(192,132,252,0.5)', borderRadius: 12, padding: '6px 14px', backdropFilter: 'blur(10px)' }}>
+    <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+      <circle cx="20" cy="20" r="11" stroke="#c084fc" strokeWidth="5.5"/>
+      <circle cx="44" cy="20" r="11" stroke="#c084fc" strokeWidth="5.5"/>
+      <circle cx="20" cy="44" r="11" stroke="#c084fc" strokeWidth="5.5"/>
+      <circle cx="44" cy="44" r="11" stroke="#c084fc" strokeWidth="5.5"/>
+    </svg>
+    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 15, color: '#e9d5ff', letterSpacing: 0.5 }}>odoo</span>
+  </div>
+);
+
+const LogoClaude = () => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(234,128,88,0.18)', border: '1px solid rgba(251,146,60,0.5)', borderRadius: 12, padding: '6px 14px', backdropFilter: 'blur(10px)' }}>
+    <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+      {/* Anthropic-style starburst */}
+      <path d="M32 5 L36.5 21 L53 21 L40 31.5 L45 48 L32 38.5 L19 48 L24 31.5 L11 21 L27.5 21 Z" fill="#fb923c"/>
+    </svg>
+    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 15, color: '#fed7aa' }}>Claude</span>
+  </div>
+);
+
+/* FinanzIA logo — dark teal "FINANZ" + lime "IA" box + horizontal-bar F icon */
+const LogoFinanzIA = () => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(13,75,69,0.28)', border: '1px solid rgba(200,244,0,0.55)', borderRadius: 12, padding: '6px 14px', backdropFilter: 'blur(10px)' }}>
+    {/* F icon: 3 decreasing horizontal bars */}
+    <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
+      <rect x="0" y="0"  width="14" height="4" rx="1.5" fill="#c8f400"/>
+      <rect x="0" y="7"  width="10" height="4" rx="1.5" fill="#c8f400"/>
+      <rect x="0" y="14" width="6"  height="4" rx="1.5" fill="#c8f400"/>
+    </svg>
+    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 14, color: '#d4ffb0', letterSpacing: 1.5 }}>FINANZ</span>
+    <span style={{ background: '#c8f400', color: '#0d3b34', fontWeight: 900, fontSize: 13, padding: '1px 6px', borderRadius: 5, letterSpacing: 1 }}>IA</span>
   </div>
 );
 
@@ -119,52 +160,59 @@ type FItem = { node: React.ReactNode; left: number; top: number; dur: number; de
 
 const FITEMS: FItem[] = [
   // Bar charts
-  { node: <MiniBar d={BAR_SETS[0]} />, left:  3, top: 15, dur: 20, delay:  -4, op: 0.13 },
-  { node: <MiniBar d={BAR_SETS[1]} />, left: 83, top: 38, dur: 25, delay: -12, op: 0.11 },
-  { node: <MiniBar d={BAR_SETS[2]} />, left: 11, top: 68, dur: 18, delay: -17, op: 0.10 },
-  { node: <MiniBar d={BAR_SETS[3]} />, left: 92, top: 55, dur: 23, delay:  -8, op: 0.09 },
+  { node: <MiniBar d={BAR_SETS[0]} />, left:  2, top: 12, dur: 11, delay:  -3, op: 0.48 },
+  { node: <MiniBar d={BAR_SETS[1]} />, left: 84, top: 35, dur: 13, delay:  -7, op: 0.42 },
+  { node: <MiniBar d={BAR_SETS[2]} />, left:  8, top: 65, dur: 10, delay:  -9, op: 0.40 },
+  { node: <MiniBar d={BAR_SETS[3]} />, left: 90, top: 52, dur: 12, delay:  -2, op: 0.38 },
   // Line charts
-  { node: <MiniLine pts={LINE_PTS[0]} id="a" />, left:  5, top: 48, dur: 22, delay:  -6, op: 0.12 },
-  { node: <MiniLine pts={LINE_PTS[1]} id="b" />, left: 77, top: 20, dur: 27, delay: -14, op: 0.10 },
-  { node: <MiniLine pts={LINE_PTS[2]} id="c" />, left: 51, top: 78, dur: 21, delay: -20, op: 0.09 },
+  { node: <MiniLine pts={LINE_PTS[0]} id="a" />, left:  4, top: 44, dur: 12, delay:  -5, op: 0.45 },
+  { node: <MiniLine pts={LINE_PTS[1]} id="b" />, left: 78, top: 18, dur: 14, delay:  -8, op: 0.40 },
+  { node: <MiniLine pts={LINE_PTS[2]} id="c" />, left: 50, top: 75, dur: 11, delay: -11, op: 0.38 },
   // Donut charts
-  { node: <MiniDonut />,                                                          left: 18, top: 28, dur: 24, delay:  -3, op: 0.14 },
-  { node: <MiniDonut s1="#10b981" s2="#7c3aed" s3="#a855f7" p1={0.40} p2={0.35}/>, left: 72, top: 62, dur: 19, delay: -15, op: 0.12 },
-  { node: <MiniDonut s1="#a855f7" s2="#6d28d9" s3="#10b981" p1={0.55} p2={0.25}/>, left: 38, top: 82, dur: 26, delay: -22, op: 0.10 },
+  { node: <MiniDonut />, left: 17, top: 24, dur: 13, delay:  -2, op: 0.52 },
+  { node: <MiniDonut s1="#10b981" s2="#7c3aed" s3="#a855f7" p1={0.40} p2={0.35}/>, left: 74, top: 60, dur: 10, delay:  -8, op: 0.46 },
+  { node: <MiniDonut s1="#a855f7" s2="#6d28d9" s3="#10b981" p1={0.55} p2={0.25}/>, left: 37, top: 80, dur: 14, delay: -12, op: 0.40 },
   // Pie charts
-  { node: <MiniPie />,                                                            left: 89, top:  6, dur: 26, delay:  -9, op: 0.12 },
-  { node: <MiniPie pcts={[0.30,0.25,0.28,0.17]} cols={['#a855f7','#7c3aed','#10b981','#6d28d9']} />, left: 36, top: 52, dur: 21, delay: -21, op: 0.11 },
-  // Amounts in Q
-  { node: <span className="font-mono font-bold text-purple-300 text-sm tabular-nums">Q 12,450.00</span>, left:  8, top: 18, dur: 17, delay:  -2, op: 0.30 },
-  { node: <span className="font-mono font-bold text-violet-300 text-sm tabular-nums">Q 48,000</span>,    left: 64, top: 32, dur: 19, delay:  -5, op: 0.28 },
-  { node: <span className="font-mono font-bold text-purple-400 text-sm tabular-nums">Q 3,750.50</span>,  left: 22, top: 75, dur: 24, delay: -14, op: 0.25 },
-  { node: <span className="font-mono font-bold text-purple-300 text-xs tabular-nums">Q 1,250.25</span>,  left: 79, top: 50, dur: 22, delay: -11, op: 0.23 },
-  { node: <span className="font-mono font-bold text-purple-200 text-xs tabular-nums">= 62,400.00</span>, left:  1, top: 85, dur: 20, delay: -16, op: 0.26 },
-  // Amounts in $
-  { node: <span className="font-mono font-bold text-emerald-400 text-sm tabular-nums">$ 8,290</span>,    left: 79, top: 50, dur: 21, delay:  -9, op: 0.27 },
-  { node: <span className="font-mono font-bold text-emerald-300 text-sm tabular-nums">$ 125,800</span>,  left: 94, top: 58, dur: 23, delay: -12, op: 0.23 },
-  { node: <span className="font-mono font-bold text-teal-300 text-xs tabular-nums">$ 42,600.00</span>,   left: 56, top: 14, dur: 18, delay:  -7, op: 0.26 },
+  { node: <MiniPie />, left: 88, top:  5, dur: 13, delay:  -4, op: 0.46 },
+  { node: <MiniPie pcts={[0.30,0.25,0.28,0.17]} cols={['#a855f7','#7c3aed','#10b981','#6d28d9']} />, left: 35, top: 50, dur: 11, delay: -11, op: 0.42 },
+  // Amounts Q
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#c084fc', fontSize: 17 }}>Q 12,450.00</span>, left:  7, top: 16, dur:  9, delay:  -1, op: 0.70 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#a78bfa', fontSize: 17 }}>Q 48,000</span>,    left: 65, top: 30, dur: 10, delay:  -4, op: 0.65 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#c084fc', fontSize: 15 }}>Q 3,750.50</span>,  left: 20, top: 72, dur: 13, delay:  -7, op: 0.60 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#d8b4fe', fontSize: 14 }}>Q 1,250.25</span>,  left: 80, top: 48, dur: 11, delay:  -6, op: 0.58 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#e9d5ff', fontSize: 14 }}>= 62,400.00</span>, left:  1, top: 82, dur: 10, delay:  -9, op: 0.60 },
+  // Amounts $
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#34d399', fontSize: 17 }}>$ 8,290</span>,   left: 76, top: 46, dur: 11, delay:  -3, op: 0.65 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#6ee7b7', fontSize: 15 }}>$ 125,800</span>, left: 93, top: 56, dur: 12, delay:  -6, op: 0.58 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#5eead4', fontSize: 14 }}>$ 42,600.00</span>, left: 55, top: 12, dur:  9, delay:  -2, op: 0.62 },
   // Operators / formulas
-  { node: <span className="font-mono font-bold text-violet-400 text-base tabular-nums">÷ 1.12</span>,    left: 45, top: 12, dur: 16, delay:  -6, op: 0.30 },
-  { node: <span className="font-mono font-bold text-purple-300 text-base tabular-nums">× 25%</span>,     left:  2, top: 42, dur: 19, delay: -10, op: 0.28 },
-  { node: <span className="font-mono text-purple-300/80 text-xs whitespace-nowrap">Activo = Pasivo + Capital</span>, left:  2, top: 58, dur: 23, delay:  -7, op: 0.25 },
-  { node: <span className="font-mono text-violet-300/80 text-xs whitespace-nowrap">ROI = U / I × 100</span>,        left: 73, top: 23, dur: 20, delay:  -1, op: 0.22 },
-  { node: <span className="font-mono text-purple-200/80 text-xs whitespace-nowrap">Margen = Utilidad / Ventas</span>, left: 47, top: 70, dur: 25, delay: -18, op: 0.20 },
-  { node: <span className="font-mono text-emerald-300/75 text-xs">IVA 12%</span>,                                   left: 43, top: 65, dur: 18, delay: -13, op: 0.30 },
-  { node: <span className="font-mono text-purple-300/75 text-xs">ISR 25%</span>,                                    left: 60, top: 88, dur: 22, delay: -19, op: 0.28 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#a78bfa', fontSize: 18 }}>÷ 1.12</span>, left: 44, top: 10, dur:  9, delay:  -5, op: 0.70 },
+  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#c084fc', fontSize: 18 }}>× 25%</span>,  left:  1, top: 38, dur: 10, delay:  -4, op: 0.65 },
+  { node: <span style={{ fontFamily: 'monospace', color: '#a78bfa', fontSize: 13, whiteSpace: 'nowrap' }}>Activo = Pasivo + Capital</span>, left:  1, top: 55, dur: 12, delay:  -3, op: 0.60 },
+  { node: <span style={{ fontFamily: 'monospace', color: '#c084fc', fontSize: 13, whiteSpace: 'nowrap' }}>ROI = Utilidad / Inversión × 100</span>, left: 70, top: 22, dur: 11, delay:  -1, op: 0.55 },
+  { node: <span style={{ fontFamily: 'monospace', color: '#e9d5ff', fontSize: 13, whiteSpace: 'nowrap' }}>Margen = Utilidad / Ventas</span>, left: 46, top: 68, dur: 13, delay: -10, op: 0.55 },
+  { node: <span style={{ fontFamily: 'monospace', color: '#34d399', fontSize: 13 }}>IVA 12%</span>, left: 42, top: 62, dur:  9, delay:  -7, op: 0.70 },
+  { node: <span style={{ fontFamily: 'monospace', color: '#c084fc', fontSize: 13 }}>ISR 25%</span>, left: 59, top: 85, dur: 11, delay: -10, op: 0.68 },
   // Financial labels
-  { node: <span className="text-purple-300/65 text-[10px] font-semibold tracking-[2px] uppercase whitespace-nowrap">Balance General</span>,       left: 14, top: 60, dur: 25, delay: -10, op: 0.28 },
-  { node: <span className="text-violet-300/65 text-[10px] font-semibold tracking-[2px] uppercase whitespace-nowrap">Estado de Resultados</span>,  left: 86, top: 42, dur: 22, delay: -21, op: 0.23 },
-  { node: <span className="text-emerald-300/65 text-[10px] font-semibold tracking-[2px] uppercase whitespace-nowrap">Flujo de Caja</span>,        left: 30, top: 26, dur: 19, delay: -14, op: 0.28 },
-  { node: <span className="text-purple-300/65 text-[10px] font-semibold tracking-[2px] uppercase whitespace-nowrap">Cuentas por Cobrar</span>,    left: 49, top: 73, dur: 24, delay:  -5, op: 0.25 },
-  { node: <span className="text-teal-300/65 text-[10px] font-semibold tracking-[2px] uppercase whitespace-nowrap">Libro de Ventas</span>,         left:  7, top: 32, dur: 21, delay: -16, op: 0.25 },
+  { node: <span style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Balance General</span>,       left: 13, top: 58, dur: 13, delay:  -5, op: 0.65 },
+  { node: <span style={{ color: '#c084fc', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Estado de Resultados</span>,  left: 85, top: 40, dur: 11, delay: -12, op: 0.58 },
+  { node: <span style={{ color: '#34d399', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Flujo de Caja</span>,        left: 29, top: 23, dur: 10, delay:  -8, op: 0.65 },
+  { node: <span style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Cuentas por Cobrar</span>,   left: 48, top: 70, dur: 12, delay:  -2, op: 0.60 },
+  { node: <span style={{ color: '#5eead4', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Libro de Ventas</span>,      left:  6, top: 30, dur: 11, delay:  -9, op: 0.60 },
   // Calculator displays
-  { node: <MiniCalc val="48,750.00" />,          left: 48, top: 40, dur: 22, delay: -15, op: 0.35 },
-  { node: <MiniCalc val="Q 3,250" lbl="TOTAL" />, left: 27, top: 66, dur: 25, delay:  -4, op: 0.32 },
-  { node: <MiniCalc val="$ 9,840.00" lbl="ISR" />, left: 85, top: 72, dur: 20, delay: -18, op: 0.30 },
+  { node: <MiniCalc val="48,750.00" />,            left: 47, top: 38, dur: 12, delay:  -8, op: 0.70 },
+  { node: <MiniCalc val="Q 3,250" lbl="TOTAL" />,  left: 26, top: 63, dur: 13, delay:  -2, op: 0.65 },
+  { node: <MiniCalc val="$ 9,840.00" lbl="ISR" />, left: 84, top: 70, dur: 10, delay: -10, op: 0.62 },
   // Financial statements
-  { node: <MiniStatement />, left: 69, top: 78, dur: 28, delay: -11, op: 0.22 },
-  { node: <MiniBalance />,   left: 15, top: 44, dur: 26, delay:  -8, op: 0.22 },
+  { node: <MiniStatement />, left: 68, top: 76, dur: 14, delay:  -6, op: 0.55 },
+  { node: <MiniBalance />,   left: 14, top: 42, dur: 13, delay:  -4, op: 0.55 },
+  // Brand logo chips
+  { node: <LogoOdoo />,     left:  2, top: 48, dur: 12, delay:  -3, op: 0.70 },
+  { node: <LogoOdoo />,     left: 80, top: 10, dur: 14, delay: -10, op: 0.65 },
+  { node: <LogoClaude />,   left: 75, top: 55, dur: 11, delay:  -6, op: 0.68 },
+  { node: <LogoClaude />,   left:  5, top: 78, dur: 13, delay:  -1, op: 0.62 },
+  { node: <LogoFinanzIA />, left: 52, top:  5, dur: 12, delay:  -7, op: 0.72 },
+  { node: <LogoFinanzIA />, left:  1, top: 68, dur: 10, delay:  -4, op: 0.65 },
 ];
 
 // ── Hero component ─────────────────────────────────────────────────
@@ -275,8 +323,8 @@ export function Hero() {
               left: `${item.left}%`,
               top: `${item.top}%`,
               opacity: item.op,
-              animation: `floatItem ${item.dur}s linear ${item.delay}s infinite`,
-              willChange: 'transform, opacity',
+              animation: `floatItem ${item.dur}s ease-in-out ${item.delay}s infinite`,
+              willChange: 'transform, opacity, filter',
             }}
           >
             {item.node}
@@ -284,15 +332,15 @@ export function Hero() {
         ))}
       </div>
 
-      {/* Gradient overlays (dim the floating elements toward center) */}
+      {/* Gradient overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/25 via-transparent to-gray-950 pointer-events-none" style={{ zIndex: 8 }} />
       <div className="absolute inset-0 bg-gradient-to-r from-gray-950/60 via-transparent to-gray-950/60 pointer-events-none" style={{ zIndex: 8 }} />
-      {/* Strong center vignette so floating elements stay on edges */}
+      {/* Center vignette keeps edges visible, center clear for hero text */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           zIndex: 9,
-          background: 'radial-gradient(ellipse 55% 60% at 50% 50%, rgba(3,7,18,0.92) 0%, rgba(3,7,18,0.60) 50%, transparent 100%)',
+          background: 'radial-gradient(ellipse 52% 58% at 50% 50%, rgba(3,7,18,0.94) 0%, rgba(3,7,18,0.62) 50%, transparent 100%)',
         }}
       />
 

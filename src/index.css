@@ -128,10 +128,10 @@
 }
 
 @keyframes floatItem {
-  0%   { opacity: 0; transform: translateY(0px); }
-  10%  { opacity: 1; }
-  88%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-80px); }
+  0%   { opacity: 0; transform: scale(0.18); filter: blur(4px); }
+  14%  { opacity: 1; filter: blur(0px); }
+  84%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.22); filter: blur(1px); }
 }
 
 .orb-float         { animation: orbFloat        14s ease-in-out infinite; }
@@ -233,10 +233,10 @@ html:not(.dark) .text-white        { color: #0f172a !important; }
 html:not(.dark) .text-gray-100     { color: #1e293b !important; }
 html:not(.dark) .text-gray-200     { color: #334155 !important; }
 html:not(.dark) .text-gray-300     { color: #475569 !important; }
-html:not(.dark) .text-gray-400     { color: #475569 !important; }
-html:not(.dark) .text-gray-500     { color: #64748b !important; }
-html:not(.dark) .text-gray-600     { color: #475569 !important; }
-html:not(.dark) .text-gray-700     { color: #334155 !important; }
+html:not(.dark) .text-gray-400     { color: #374151 !important; }
+html:not(.dark) .text-gray-500     { color: #374151 !important; }
+html:not(.dark) .text-gray-600     { color: #1f2937 !important; }
+html:not(.dark) .text-gray-700     { color: #111827 !important; }
 html:not(.dark) .hover\:text-white:hover       { color: #0f172a !important; }
 html:not(.dark) .hover\:text-gray-300:hover    { color: #334155 !important; }
 html:not(.dark) .hover\:text-purple-400:hover  { color: #7c3aed !important; }
