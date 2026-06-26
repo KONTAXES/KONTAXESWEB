@@ -91,10 +91,15 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   const reg     = data.regimen as Regimen;
 
   const base = BASE_PRICES[contrib][reg];
+  const obligatoria = isContabilidadObligatoria(data);
+  const tieneContabilidad = obligatoria || data.contabilidadCompleta === true;
+
   breakdown.push({
     item: `Servicio contable — ${CONTRIB_LABEL[contrib]} · ${REGIMEN_LABEL[reg]}`,
     cost: base,
-    note: 'Incluye registro contable y elaboración de estados financieros básicos',
+    note: tieneContabilidad
+      ? 'Incluye estados financieros básicos y libros contables'
+      : 'Incluye libro de compras y ventas',
   });
   total += base;
 
@@ -102,19 +107,18 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
     breakdown.push({
       item: 'Alcance compra-venta — sistema de inventarios y costo de ventas',
       cost: 500,
-      note: 'Sistema más robusto con control de inventarios, costo de ventas y conciliación de mercancías',
+      note: 'Control de inventarios, costo de ventas y conciliación de mercancías',
     });
     total += 500;
   }
 
-  const obligatoria = isContabilidadObligatoria(data);
-  if (obligatoria || data.contabilidadCompleta === true) {
+  if (tieneContabilidad) {
     breakdown.push({
       item: `Contabilidad completa con FinanzIA${obligatoria ? ' — obligatoria por ley' : ''}`,
       cost: 500,
       note: obligatoria
-        ? 'Legalmente obligatorio. Catálogo de cuentas, asientos, estados financieros en FinanzIA.'
-        : 'Recomendado financieramente. Catálogo de cuentas, asientos, estados financieros en FinanzIA.',
+        ? 'Obligatoria según normativa vigente. Catálogo de cuentas, asientos y estados financieros.'
+        : 'Catálogo de cuentas, asientos contables y estados financieros en FinanzIA.',
     });
     total += 500;
   }
