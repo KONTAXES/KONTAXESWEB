@@ -81,8 +81,7 @@ const MiniPie = ({ pcts = [0.42,0.28,0.18,0.12], cols = ['#7c3aed','#a855f7','#1
 const MiniCalc = ({ val, lbl = 'CALC' }: { val: string; lbl?: string }) => (
   <div style={{
     borderRadius: 14, border: '1px solid rgba(167,139,250,0.45)',
-    background: 'rgba(109,40,217,0.28)', padding: '9px 16px',
-    fontFamily: 'monospace', textAlign: 'right', minWidth: 126, backdropFilter: 'blur(10px)',
+    padding: '9px 16px', fontFamily: 'monospace', textAlign: 'right', minWidth: 126,
   }}>
     <div style={{ fontSize: 9, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 3 }}>{lbl}</div>
     <div style={{ color: '#f3e8ff', fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{val}</div>
@@ -90,66 +89,86 @@ const MiniCalc = ({ val, lbl = 'CALC' }: { val: string; lbl?: string }) => (
 );
 
 const MiniStatement = () => (
-  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 156, backdropFilter: 'blur(10px)' }}>
-    <div style={{ color: '#c084fc', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(147,51,234,0.25)', paddingBottom: 3 }}>
+  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 156 }}>
+    <div style={{ color: '#c084fc', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(147,51,234,0.3)', paddingBottom: 3 }}>
       Estado de Resultados
     </div>
     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>Ingresos</span><span>Q 48,000</span></div>
     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>(-) Costos</span><span>Q 12,500</span></div>
     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>(-) Gastos</span><span>Q 4,200</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f3e8ff', fontWeight: 800, borderTop: '1px solid rgba(147,51,234,0.22)', marginTop: 3, paddingTop: 3, gap: 18 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f3e8ff', fontWeight: 800, borderTop: '1px solid rgba(147,51,234,0.3)', marginTop: 3, paddingTop: 3, gap: 18 }}>
       <span>Utilidad</span><span>Q 31,300</span>
     </div>
   </div>
 );
 
 const MiniBalance = () => (
-  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 148, backdropFilter: 'blur(10px)' }}>
-    <div style={{ color: '#34d399', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(16,185,129,0.25)', paddingBottom: 3 }}>
+  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 148 }}>
+    <div style={{ color: '#34d399', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(16,185,129,0.3)', paddingBottom: 3 }}>
       Balance General
     </div>
     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6ee7b7', gap: 14 }}><span>Total Activo</span><span>Q 95,400</span></div>
     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6ee7b7', gap: 14 }}><span>Pasivo</span><span>Q 28,700</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a7f3d0', fontWeight: 800, borderTop: '1px solid rgba(16,185,129,0.22)', marginTop: 3, paddingTop: 3, gap: 14 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a7f3d0', fontWeight: 800, borderTop: '1px solid rgba(16,185,129,0.3)', marginTop: 3, paddingTop: 3, gap: 14 }}>
       <span>Capital</span><span>Q 66,700</span>
     </div>
   </div>
 );
 
-// ── Brand logo chips ────────────────────────────────────────────────
+// ── Brand logo chips — no dark backgrounds ──────────────────────────
 
+/* Anthropic orange orb — image 1 */
+const LogoAnthropicOrb = () => (
+  <div style={{
+    width: 48, height: 48, borderRadius: '50%',
+    background: 'radial-gradient(circle at 38% 36%, #e8a47a, #c45f3a)',
+    boxShadow: '0 0 22px rgba(196,95,58,0.55)',
+  }} />
+);
+
+/* Claude — 12-spoke asterisk + serif "Claude" text, matching real logo */
+const LogoClaude = () => {
+  const spokes = Array.from({ length: 12 }, (_, i) => {
+    const a = (i * 30 - 90) * (Math.PI / 180);
+    return {
+      x1: 26 + 9  * Math.cos(a), y1: 26 + 9  * Math.sin(a),
+      x2: 26 + 23 * Math.cos(a), y2: 26 + 23 * Math.sin(a),
+    };
+  });
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+      <svg width="30" height="30" viewBox="0 0 52 52" fill="none">
+        {spokes.map((s, i) => (
+          <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+            stroke="#cc6644" strokeWidth="4.5" strokeLinecap="round" />
+        ))}
+      </svg>
+      <span style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 400, fontSize: 19, color: '#e8956a', letterSpacing: 0.3 }}>Claude</span>
+    </div>
+  );
+};
+
+/* Odoo — kidney/bean blob matching their icon + "odoo" wordmark */
 const LogoOdoo = () => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(113,75,103,0.28)', border: '1px solid rgba(192,132,252,0.5)', borderRadius: 12, padding: '6px 14px', backdropFilter: 'blur(10px)' }}>
-    <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
-      <circle cx="20" cy="20" r="11" stroke="#c084fc" strokeWidth="5.5"/>
-      <circle cx="44" cy="20" r="11" stroke="#c084fc" strokeWidth="5.5"/>
-      <circle cx="20" cy="44" r="11" stroke="#c084fc" strokeWidth="5.5"/>
-      <circle cx="44" cy="44" r="11" stroke="#c084fc" strokeWidth="5.5"/>
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+    <svg width="34" height="26" viewBox="0 0 68 52" fill="none">
+      {/* Bean/kidney blob approximating Odoo's icon */}
+      <path d="M8,26 C8,11 18,4 30,5 C44,6 58,14 56,28 C54,42 42,50 28,48 C14,46 8,41 8,26 Z" fill="#714B67"/>
+      <ellipse cx="34" cy="26" rx="10" ry="10" fill="#f8f4f6" opacity="0.18"/>
     </svg>
-    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 15, color: '#e9d5ff', letterSpacing: 0.5 }}>odoo</span>
+    <span style={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: 17, color: '#c084fc', letterSpacing: 0.3 }}>odoo</span>
   </div>
 );
 
-const LogoClaude = () => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(234,128,88,0.18)', border: '1px solid rgba(251,146,60,0.5)', borderRadius: 12, padding: '6px 14px', backdropFilter: 'blur(10px)' }}>
-    <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
-      {/* Anthropic-style starburst */}
-      <path d="M32 5 L36.5 21 L53 21 L40 31.5 L45 48 L32 38.5 L19 48 L24 31.5 L11 21 L27.5 21 Z" fill="#fb923c"/>
-    </svg>
-    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 15, color: '#fed7aa' }}>Claude</span>
-  </div>
-);
-
-/* FinanzIA logo — dark teal "FINANZ" + lime "IA" box + horizontal-bar F icon */
+/* FinanzIA — horizontal-bar F icon + FINANZ + lime IA box */
 const LogoFinanzIA = () => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(13,75,69,0.28)', border: '1px solid rgba(200,244,0,0.55)', borderRadius: 12, padding: '6px 14px', backdropFilter: 'blur(10px)' }}>
-    {/* F icon: 3 decreasing horizontal bars */}
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
     <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
       <rect x="0" y="0"  width="14" height="4" rx="1.5" fill="#c8f400"/>
       <rect x="0" y="7"  width="10" height="4" rx="1.5" fill="#c8f400"/>
       <rect x="0" y="14" width="6"  height="4" rx="1.5" fill="#c8f400"/>
     </svg>
-    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 14, color: '#d4ffb0', letterSpacing: 1.5 }}>FINANZ</span>
+    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 15, color: '#d4ffb0', letterSpacing: 1.5 }}>FINANZ</span>
     <span style={{ background: '#c8f400', color: '#0d3b34', fontWeight: 900, fontSize: 13, padding: '1px 6px', borderRadius: 5, letterSpacing: 1 }}>IA</span>
   </div>
 );
@@ -206,13 +225,15 @@ const FITEMS: FItem[] = [
   // Financial statements
   { node: <MiniStatement />, left: 68, top: 76, dur: 14, delay:  -6, op: 0.55 },
   { node: <MiniBalance />,   left: 14, top: 42, dur: 13, delay:  -4, op: 0.55 },
-  // Brand logo chips
-  { node: <LogoOdoo />,     left:  2, top: 48, dur: 12, delay:  -3, op: 0.70 },
-  { node: <LogoOdoo />,     left: 80, top: 10, dur: 14, delay: -10, op: 0.65 },
-  { node: <LogoClaude />,   left: 75, top: 55, dur: 11, delay:  -6, op: 0.68 },
-  { node: <LogoClaude />,   left:  5, top: 78, dur: 13, delay:  -1, op: 0.62 },
-  { node: <LogoFinanzIA />, left: 52, top:  5, dur: 12, delay:  -7, op: 0.72 },
-  { node: <LogoFinanzIA />, left:  1, top: 68, dur: 10, delay:  -4, op: 0.65 },
+  // Brand logos — no card backgrounds
+  { node: <LogoAnthropicOrb />, left:  4, top: 47, dur: 10, delay:  -2, op: 0.75 },
+  { node: <LogoAnthropicOrb />, left: 86, top: 14, dur: 13, delay:  -9, op: 0.68 },
+  { node: <LogoClaude />,       left:  3, top: 77, dur: 12, delay:  -5, op: 0.72 },
+  { node: <LogoClaude />,       left: 72, top: 54, dur: 11, delay:  -1, op: 0.68 },
+  { node: <LogoOdoo />,         left: 78, top:  8, dur: 13, delay: -11, op: 0.70 },
+  { node: <LogoOdoo />,         left:  1, top: 62, dur: 10, delay:  -6, op: 0.66 },
+  { node: <LogoFinanzIA />,     left: 51, top:  4, dur: 12, delay:  -7, op: 0.74 },
+  { node: <LogoFinanzIA />,     left: 85, top: 70, dur: 11, delay:  -3, op: 0.68 },
 ];
 
 // ── Hero component ─────────────────────────────────────────────────
