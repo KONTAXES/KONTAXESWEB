@@ -148,15 +148,14 @@ const LogoClaude = () => {
   );
 };
 
-/* Odoo — kidney/bean blob matching their icon + "odoo" wordmark */
+/* Odoo — kidney/bean blob in visible purple + "odoo" wordmark */
 const LogoOdoo = () => (
   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-    <svg width="34" height="26" viewBox="0 0 68 52" fill="none">
-      {/* Bean/kidney blob approximating Odoo's icon */}
-      <path d="M8,26 C8,11 18,4 30,5 C44,6 58,14 56,28 C54,42 42,50 28,48 C14,46 8,41 8,26 Z" fill="#714B67"/>
-      <ellipse cx="34" cy="26" rx="10" ry="10" fill="#f8f4f6" opacity="0.18"/>
+    <svg width="36" height="28" viewBox="0 0 72 56" fill="none">
+      <path d="M8,28 C8,12 19,4 32,5 C46,6 62,15 60,30 C58,45 44,54 29,51 C14,48 8,44 8,28 Z" fill="#a855f7"/>
+      <ellipse cx="36" cy="28" rx="11" ry="11" fill="rgba(255,255,255,0.12)"/>
     </svg>
-    <span style={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: 17, color: '#c084fc', letterSpacing: 0.3 }}>odoo</span>
+    <span style={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: 17, color: '#d8b4fe', letterSpacing: 0.3 }}>odoo</span>
   </div>
 );
 
@@ -337,18 +336,15 @@ export function Hero() {
       {/* ── Floating financial elements ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
         {FITEMS.map((item, i) => (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${item.left}%`,
-              top: `${item.top}%`,
-              opacity: item.op,
+          /* Outer div: position + opacity cap (not animated) */
+          <div key={i} className="absolute" style={{ left: `${item.left}%`, top: `${item.top}%`, opacity: item.op }}>
+            {/* Inner div: animation only — keyframes control opacity 0→1→1→0 */}
+            <div style={{
               animation: `floatItem ${item.dur}s ease-in-out ${item.delay}s infinite`,
-              willChange: 'transform, opacity, filter',
-            }}
-          >
-            {item.node}
+              willChange: 'transform, opacity',
+            }}>
+              {item.node}
+            </div>
           </div>
         ))}
       </div>

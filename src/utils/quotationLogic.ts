@@ -47,7 +47,7 @@ export const FORMS: Record<Regimen, number> = { pequeño: 1, opcional: 2, genera
 
 export const REGIMEN_LABEL: Record<Regimen, string> = {
   pequeño:  'Pequeño Contribuyente (IVA 5%)',
-  opcional: 'IVA 12% + ISR Opcional 5–7%',
+  opcional: 'Régimen Opcional (IVA 12% + ISR 5–7%)',
   general:  'IVA 12% + ISR Sobre Utilidades 25%',
 };
 

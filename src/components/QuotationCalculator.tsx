@@ -248,7 +248,7 @@ export function QuotationCalculator() {
       <div className="space-y-3">
         {([
           ['pequeño',  'Pequeño Contribuyente'],
-          ['opcional', 'Régimen Opcional (IVA 12%)'],
+          ['opcional', 'Régimen Opcional (IVA 12% + ISR 5–7%)'],
           ['general',  'Régimen General (IVA 12% + ISR 25%)'],
         ] as [Regimen, string][]).map(([v, label], i) => (
           <Card key={v} label={label} delay={i * 70}
