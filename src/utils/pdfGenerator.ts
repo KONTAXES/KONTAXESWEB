@@ -12,7 +12,7 @@ export interface QuotationPDFData {
 
 async function getLogoBase64(): Promise<string> {
   try {
-    const res = await fetch('/K_V4-2.png');
+    const res = await fetch('/K_white.png');
     const blob = await res.blob();
     return await new Promise((resolve) => {
       const reader = new FileReader();
