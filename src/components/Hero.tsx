@@ -115,61 +115,22 @@ const MiniBalance = () => (
   </div>
 );
 
-// ── Brand logo chips — no dark backgrounds ──────────────────────────
+// ── Brand logos — real GIF/PNG files ────────────────────────────────
 
-/* Anthropic orange orb — image 1 */
 const LogoAnthropicOrb = () => (
-  <div style={{
-    width: 48, height: 48, borderRadius: '50%',
-    background: 'radial-gradient(circle at 38% 36%, #e8a47a, #c45f3a)',
-    boxShadow: '0 0 22px rgba(196,95,58,0.55)',
-  }} />
+  <img src="/logo-claude.gif" alt="Claude" style={{ height: 72, width: 'auto', display: 'block' }} />
 );
 
-/* Claude — 12-spoke asterisk + serif "Claude" text, matching real logo */
-const LogoClaude = () => {
-  const spokes = Array.from({ length: 12 }, (_, i) => {
-    const a = (i * 30 - 90) * (Math.PI / 180);
-    return {
-      x1: 26 + 9  * Math.cos(a), y1: 26 + 9  * Math.sin(a),
-      x2: 26 + 23 * Math.cos(a), y2: 26 + 23 * Math.sin(a),
-    };
-  });
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      <svg width="30" height="30" viewBox="0 0 52 52" fill="none">
-        {spokes.map((s, i) => (
-          <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
-            stroke="#cc6644" strokeWidth="4.5" strokeLinecap="round" />
-        ))}
-      </svg>
-      <span style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 400, fontSize: 19, color: '#e8956a', letterSpacing: 0.3 }}>Claude</span>
-    </div>
-  );
-};
+const LogoClaude = () => (
+  <img src="/logo-claude.gif" alt="Claude" style={{ height: 56, width: 'auto', display: 'block' }} />
+);
 
-/* Odoo — kidney/bean blob in visible purple + "odoo" wordmark */
 const LogoOdoo = () => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-    <svg width="36" height="28" viewBox="0 0 72 56" fill="none">
-      <path d="M8,28 C8,12 19,4 32,5 C46,6 62,15 60,30 C58,45 44,54 29,51 C14,48 8,44 8,28 Z" fill="#a855f7"/>
-      <ellipse cx="36" cy="28" rx="11" ry="11" fill="rgba(255,255,255,0.12)"/>
-    </svg>
-    <span style={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: 17, color: '#d8b4fe', letterSpacing: 0.3 }}>odoo</span>
-  </div>
+  <img src="/logo-odoo.gif" alt="Odoo" style={{ height: 64, width: 'auto', display: 'block' }} />
 );
 
-/* FinanzIA — horizontal-bar F icon + FINANZ + lime IA box */
 const LogoFinanzIA = () => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-    <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
-      <rect x="0" y="0"  width="14" height="4" rx="1.5" fill="#c8f400"/>
-      <rect x="0" y="7"  width="10" height="4" rx="1.5" fill="#c8f400"/>
-      <rect x="0" y="14" width="6"  height="4" rx="1.5" fill="#c8f400"/>
-    </svg>
-    <span style={{ fontFamily: 'sans-serif', fontWeight: 800, fontSize: 15, color: '#d4ffb0', letterSpacing: 1.5 }}>FINANZ</span>
-    <span style={{ background: '#c8f400', color: '#0d3b34', fontWeight: 900, fontSize: 13, padding: '1px 6px', borderRadius: 5, letterSpacing: 1 }}>IA</span>
-  </div>
+  <img src="/logo-finanz-ia.png" alt="FinanzIA" style={{ height: 48, width: 'auto', display: 'block' }} />
 );
 
 // ── Floating element definitions ────────────────────────────────
