@@ -289,10 +289,10 @@ export function Hero() {
   }, []);
 
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden bg-gray-950">
+    <section id="hero-section" className="relative h-screen flex items-center justify-center overflow-hidden bg-gray-950">
 
       {/* Three.js canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      <canvas ref={canvasRef} className="hero-canvas absolute inset-0 w-full h-full" />
 
       {/* ── Floating financial elements ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
@@ -311,16 +311,10 @@ export function Hero() {
       </div>
 
       {/* Gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-950/25 via-transparent to-gray-950 pointer-events-none" style={{ zIndex: 8 }} />
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-950/60 via-transparent to-gray-950/60 pointer-events-none" style={{ zIndex: 8 }} />
-      {/* Center vignette keeps edges visible, center clear for hero text */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 9,
-          background: 'radial-gradient(ellipse 52% 58% at 50% 50%, rgba(3,7,18,0.94) 0%, rgba(3,7,18,0.62) 50%, transparent 100%)',
-        }}
-      />
+      <div className="hero-grad-b absolute inset-0 pointer-events-none" style={{ zIndex: 8 }} />
+      <div className="hero-grad-r absolute inset-0 pointer-events-none" style={{ zIndex: 8 }} />
+      {/* Center vignette */}
+      <div className="hero-vignette absolute inset-0 pointer-events-none" style={{ zIndex: 9 }} />
 
       {/* Cursor glow */}
       <div

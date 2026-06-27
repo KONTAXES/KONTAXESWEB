@@ -274,6 +274,34 @@ html:not(.dark) .grid-bg {
 html:not(.dark) ::-webkit-scrollbar-track { background: #f1f5f9; }
 html:not(.dark) ::-webkit-scrollbar-thumb { background: #a78bfa; }
 
+/* ── Hero — dark mode (default) gradients & vignette ── */
+.hero-grad-b {
+  background: linear-gradient(to bottom, rgba(88,28,135,0.25) 0%, transparent 40%, #030712 100%);
+}
+.hero-grad-r {
+  background: linear-gradient(to right, rgba(3,7,18,0.6) 0%, transparent 50%, rgba(3,7,18,0.6) 100%);
+}
+.hero-vignette {
+  background: radial-gradient(ellipse 52% 58% at 50% 50%, rgba(3,7,18,0.94) 0%, rgba(3,7,18,0.62) 50%, transparent 100%);
+}
+
+/* ── Hero — light mode overrides ── */
+html:not(.dark) #hero-section {
+  background-color: #ede9fe !important; /* soft lavender */
+}
+html:not(.dark) .hero-canvas {
+  opacity: 0.06 !important; /* almost invisible — just subtle texture */
+}
+html:not(.dark) .hero-grad-b {
+  background: linear-gradient(to bottom, rgba(237,233,254,0.55) 0%, transparent 40%, rgba(237,233,254,0.92) 100%) !important;
+}
+html:not(.dark) .hero-grad-r {
+  background: linear-gradient(to right, rgba(237,233,254,0.75) 0%, transparent 50%, rgba(237,233,254,0.75) 100%) !important;
+}
+html:not(.dark) .hero-vignette {
+  background: radial-gradient(ellipse 55% 62% at 50% 50%, rgba(246,244,255,0.97) 0%, rgba(246,244,255,0.82) 50%, transparent 100%) !important;
+}
+
 /* ── Cotizador (Quotation wizard) — light mode overrides ── */
 /* The wizard card uses bg-gray-900/80 which stays dark without this */
 html:not(.dark) .bg-gray-900\/80 { background-color: rgba(255,255,255,0.95) !important; }
