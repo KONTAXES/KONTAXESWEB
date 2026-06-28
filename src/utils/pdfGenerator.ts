@@ -144,7 +144,7 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     .disclaimer{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-top:18px;font-size:11px;color:#1e40af;line-height:1.6;}
 
     /* ── Signature ── */
-    .signature-section{margin-top:32px;padding-top:20px;border-top:1px solid #e0e7ff;page-break-inside:avoid;}
+    .signature-section{margin-top:32px;padding-top:20px;border-top:1px solid #e0e7ff;page-break-inside:avoid;page-break-before:avoid;}
     .sig-block{display:inline-block;text-align:center;min-width:200px;}
     .sig-img{height:68px;width:auto;display:block;margin:0 auto 4px;}
     .sig-line{border-top:1px solid #374151;margin:4px 0;}
@@ -231,6 +231,7 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
       </div>` : ''}
     </div>
 
+    <div style="page-break-inside:avoid;">
     <div class="disclaimer">
       <strong>IMPORTANTE:</strong> Esta es una cotización estimada, NO un documento formal. Para formalizar el servicio se
       enviará la propuesta oficial, cotización formal y contrato de servicios profesionales.
@@ -245,6 +246,7 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
         <div class="sig-role">Gerente General</div>
         <div class="sig-company">KONTAXES CONSULTORES, S.A.</div>
       </div>
+    </div>
     </div>
 
   </div>
