@@ -54,8 +54,6 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     data.correo   ? `<tr><td class="lbl">Correo</td><td>${data.correo}</td></tr>`    : '',
   ].filter(Boolean).join('');
 
-  const summaryRows = (data.formSummary || []).map(s => `<li>${s}</li>`).join('');
-
   const breakdownRows = data.breakdown.map(item => `
     <tr>
       <td>${item.item}${item.note ? `<br/><span class="note">${item.note}</span>` : ''}</td>
@@ -198,12 +196,6 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     <div class="client-section" style="margin-bottom:22px;">
       <div class="section-title">Datos del Cliente</div>
       <div class="client-box"><table>${clientRows}</table></div>
-    </div>` : ''}
-
-    ${summaryRows ? `
-    <div style="margin-bottom:22px;">
-      <div class="section-title">Servicios Incluidos</div>
-      <div class="summary-box"><ul>${summaryRows}</ul></div>
     </div>` : ''}
 
     <div class="breakdown-section">

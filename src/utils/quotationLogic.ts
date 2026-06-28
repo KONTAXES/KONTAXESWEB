@@ -17,6 +17,7 @@ export interface QuotationData {
   activosMayor25k: boolean | null;      // solo para sociedad + pequeño
   alcance: Alcance | '';
   contabilidadCompleta: boolean | null;
+  planillaIGSS: boolean | null;
   presentacionImpuestos: boolean | null;
   certFEL: CertFEL | '';
   whatsappFEL: boolean | null;
@@ -142,7 +143,17 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
     total += 500;
   }
 
-  // 4. Presentación de impuestos
+  // 4. Planilla + IGSS
+  if (incluyeContabilidad && data.planillaIGSS === true) {
+    breakdown.push({
+      item: 'Elaboración de planilla e IGSS',
+      cost: 250,
+      note: 'Control contable y generación de reportes SAT-IGSS. No incluye realizar los desembolsos.',
+    });
+    total += 250;
+  }
+
+  // 5. Presentación de impuestos
   if (data.presentacionImpuestos === true) {
     const numForms = FORMS[reg];
     const pricePerForm = contrib === 'individual' ? 50 : 100;
@@ -196,6 +207,8 @@ export function buildFormSummary(data: QuotationData): string[] {
   const obligatoria = isContabilidadObligatoria(data);
   if (obligatoria || data.contabilidadCompleta === true)
     lines.push('Contabilidad completa');
+  if (data.planillaIGSS === true)
+    lines.push('Elaboración de planilla e IGSS');
   if (data.presentacionImpuestos === true) {
     const reg = data.regimen as Regimen;
     const taxDetail =

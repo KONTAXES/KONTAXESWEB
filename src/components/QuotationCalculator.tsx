@@ -18,7 +18,7 @@ const WA_NUMBER = '50236387717';
 /* ── Step IDs ───────────────────────────────────────────────────── */
 type StepId =
   | 'service-type' | 'contribuyente' | 'regimen' | 'activos'
-  | 'alcance' | 'contabilidad' | 'impuestos' | 'cert-fel'
+  | 'alcance' | 'contabilidad' | 'planilla' | 'impuestos' | 'cert-fel'
   | 'wa-fel' | 'contact' | 'contact-service';
 
 function getActiveSteps(form: QuotationData): StepId[] {
@@ -45,6 +45,12 @@ function getActiveSteps(form: QuotationData): StepId[] {
     if (form.contabilidadCompleta === null) return s;
   }
 
+  const incluyeContabilidad = isContabilidadObligatoria(form) || form.contabilidadCompleta === true;
+  if (incluyeContabilidad) {
+    s.push('planilla');
+    if (form.planillaIGSS === null) return s;
+  }
+
   s.push('impuestos');
   if (form.presentacionImpuestos === null) return s;
 
@@ -61,11 +67,14 @@ function getActiveSteps(form: QuotationData): StepId[] {
 function getTotalSteps(form: QuotationData): number {
   if (!form.serviceType) return 2;
   if (form.serviceType !== 'contable') return 2;
-  let n = 6; // service-type, contribuyente, regimen, alcance, impuestos, cert-fel, wa-fel, contact
+  let n = 6;
   const maybeActivos = !form.contribuyente || (form.contribuyente === 'sociedad' && (!form.regimen || form.regimen === 'pequeño'));
   if (maybeActivos) n++;
   if (!isContabilidadObligatoria(form)) n++;
-  return n + 2; // cert-fel, wa-fel, contact
+  // planilla step shows when contabilidad completa
+  const maybeContab = !form.contabilidadCompleta || form.contabilidadCompleta === true || isContabilidadObligatoria(form);
+  if (maybeContab) n++;
+  return n + 2;
 }
 
 /* ── Sub-components ─────────────────────────────────────────────── */
@@ -121,7 +130,7 @@ const Q = ({ question, hint }: { icon?: string; question: string; hint?: string 
 const EMPTY: QuotationData = {
   serviceType: '', contribuyente: '', regimen: '',
   activosMayor25k: null, alcance: '', contabilidadCompleta: null,
-  presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
+  planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
   nombre: '', empresa: '', whatsapp: '', correo: '',
 };
 
@@ -154,9 +163,10 @@ export function QuotationCalculator() {
   const sActivos          = (v: boolean)       => setForm(p => ({ ...p, activosMayor25k: v, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
   const sAlcance          = (v: Alcance) => {
     const ob = isContabilidadObligatoria(form);
-    setForm(p => ({ ...p, alcance: v, contabilidadCompleta: ob ? true : null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+    setForm(p => ({ ...p, alcance: v, contabilidadCompleta: ob ? true : null, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
   };
-  const sContabilidad     = (v: boolean)  => setForm(p => ({ ...p, contabilidadCompleta: v, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sContabilidad     = (v: boolean)  => setForm(p => ({ ...p, contabilidadCompleta: v, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sPlanillaIGSS     = (v: boolean)  => setForm(p => ({ ...p, planillaIGSS: v, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
   const sImpuestos        = (v: boolean)  => setForm(p => ({ ...p, presentacionImpuestos: v, certFEL: '', whatsappFEL: null }));
   const sCertFEL          = (v: CertFEL)  => setForm(p => ({ ...p, certFEL: v, whatsappFEL: null }));
   const sWhatsappFEL      = (v: boolean)  => setForm(p => ({ ...p, whatsappFEL: v }));
@@ -203,6 +213,7 @@ export function QuotationCalculator() {
       case 'activos':       return form.activosMayor25k;
       case 'alcance':       return form.alcance;
       case 'contabilidad':  return form.contabilidadCompleta;
+      case 'planilla':      return form.planillaIGSS;
       case 'impuestos':     return form.presentacionImpuestos;
       case 'cert-fel':      return form.certFEL;
       case 'wa-fel':        return form.whatsappFEL;
@@ -335,6 +346,21 @@ export function QuotationCalculator() {
     </>
   );
 
+  const stepPlanilla = () => (
+    <>
+      <Q question="¿Requiere elaboración de planilla + IGSS?"
+        hint="Control contable y generación de reportes SAT-IGSS. No incluye realizar los desembolsos." />
+      <div className="space-y-3">
+        <Opt label="Sí, incluir planilla e IGSS"
+          selected={form.planillaIGSS === true} accent="emerald"
+          onClick={() => pick(() => sPlanillaIGSS(true))} />
+        <Opt label="No por ahora"
+          selected={form.planillaIGSS === false}
+          onClick={() => pick(() => sPlanillaIGSS(false))} />
+      </div>
+    </>
+  );
+
   const stepImpuestos = () => {
     const reg = form.regimen as Regimen;
     const n = FORMS[reg];
@@ -443,6 +469,7 @@ export function QuotationCalculator() {
       case 'activos':         return stepActivos();
       case 'alcance':         return stepAlcance();
       case 'contabilidad':    return stepContabilidad();
+      case 'planilla':        return stepPlanilla();
       case 'impuestos':       return stepImpuestos();
       case 'cert-fel':        return stepCertFEL();
       case 'wa-fel':          return stepWAFel();
