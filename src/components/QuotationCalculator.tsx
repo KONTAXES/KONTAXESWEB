@@ -396,12 +396,12 @@ export function QuotationCalculator() {
 
   const stepWAFel = () => (
     <>
-      <Q icon="📱" question="¿Facturas por WhatsApp?" hint="FELSimple — Emite facturas electrónicas certificadas directo desde WhatsApp en segundos." />
+      <Q question="¿Facturas por WhatsApp?" hint="Emite facturas electrónicas certificadas por la SAT directo desde WhatsApp." />
       <div className="space-y-3">
-        <Opt label="Sí, quiero FELSimple" sub="Factura desde WhatsApp, certifica con la SAT al instante"
+        <Opt label="Sí, solicitar facturas por WhatsApp"
           selected={form.whatsappFEL === true} accent="emerald"
           onClick={() => pick(() => sWhatsappFEL(true))} />
-        <Opt label="No por ahora" sub="Puedes activarlo después"
+        <Opt label="No por ahora"
           selected={form.whatsappFEL === false}
           onClick={() => pick(() => sWhatsappFEL(false))} />
       </div>
