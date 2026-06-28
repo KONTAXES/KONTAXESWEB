@@ -147,9 +147,8 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
     const numForms = FORMS[reg];
     const pricePerForm = contrib === 'individual' ? 50 : 100;
     const costImp  = numForms * pricePerForm;
-    const formLabel = numForms === 1 ? '1 formulario' : `${numForms} formularios`;
     breakdown.push({
-      item: `Presentación de impuestos (${formLabel})`,
+      item: 'Presentación de impuestos',
       cost: costImp,
       note: reg === 'pequeño'
         ? 'Declaración mensual de IVA 5%'
