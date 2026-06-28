@@ -180,7 +180,7 @@ export function QuotationCalculator() {
   const handleWA = async () => {
     if (!result) return;
     await handlePDF();
-    setTimeout(() => window.open(`https://wa.me/${WA_NUMBER}?text=${buildWAText(form, result)}`, '_blank'), 400);
+    setTimeout(() => window.open(`https://wa.me/${WA_NUMBER}?text=${buildWAText(form, result!)}`, '_blank'), 400);
   };
 
   const handleEmail = async () => {
@@ -344,7 +344,7 @@ export function QuotationCalculator() {
     <>
       <Q icon="📒" question="¿Deseas contabilidad completa?" hint="No es fiscalmente obligatorio, pero es recomendado financieramente para una gestión sólida." />
       <div className="space-y-3">
-        <Opt icon="📊" label="Sí, con FinanzIA (+Q500/mes)" sub="Catálogo de cuentas, asientos y estados financieros en FinanzIA"
+        <Opt icon="📊" label="Sí, contabilidad completa (+Q500/mes)" sub="Catálogo de cuentas, asientos contables y estados financieros"
           selected={form.contabilidadCompleta === true}
           onClick={() => pick(() => sContabilidad(true))} />
         <Opt icon="⏩" label="No por ahora" sub="Solo contabilidad básica sin registro completo"
@@ -359,10 +359,10 @@ export function QuotationCalculator() {
     const n = FORMS[reg];
     const cost = n * 100;
     const obligatoria = isContabilidadObligatoria(form);
-    const formDesc: Record<Regimen, string> = {
-      pequeño:  'Declaración IVA 5% (Form. 2046)',
-      opcional: 'IVA mensual (F2000) + ISR trimestral (F2189)',
-      general:  'IVA mensual + ISR + ISO + cierre anual',
+    const hintMap: Record<Regimen, string> = {
+      pequeño:  'IVA 5% mensual',
+      opcional: 'IVA mensual · ISR mensual · ISR retenciones · ISR anual',
+      general:  'IVA mensual · IVA trimestral · ISO trimestral · ISR anual · retenciones',
     };
     return (
       <>
@@ -370,12 +370,11 @@ export function QuotationCalculator() {
           <div className="flex items-start gap-2 mb-6 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
             <CheckCircleIcon size={14} className="text-purple-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-purple-300 leading-relaxed">
-              <strong>Contabilidad completa con FinanzIA incluida automáticamente</strong> — obligatoria por ley para tu perfil.
+              <strong>Contabilidad completa incluida automáticamente</strong> — obligatoria por ley para tu perfil.
             </p>
           </div>
         )}
-        <Q icon="🧾" question="¿Presentamos tus impuestos?"
-          hint={`${n} ${n === 1 ? 'formulario' : 'formularios'} — ${formDesc[reg]} · +Q${cost}/mes si Sí`} />
+        <Q icon="🧾" question="¿Presentamos tus impuestos?" hint={reg ? hintMap[reg] : ''} />
         <div className="space-y-3">
           <Opt icon="✅" label={`Sí (+Q${cost}/mes)`}
             sub={`KONTAXES presenta ${n === 1 ? 'tu formulario' : 'tus formularios'} ante la SAT`}
@@ -396,15 +395,15 @@ export function QuotationCalculator() {
         <Opt icon="⏩" label="No necesito por ahora" sub="Puedes activarlo en cualquier momento"
           selected={form.certFEL === 'ninguno'}
           onClick={() => pick(() => sCertFEL('ninguno'))} />
-        <Opt icon="🟣" label="Vía Odoo (CORPOSISTEMAS, S.A.)" sub="Q375 implementación (único) + Q0.20 por DTE emitido"
+        <Opt icon="🟣" label="Certificador ERP" sub="Q375 implementación (único) + Q0.20 por DTE emitido"
           badge="popular" selected={form.certFEL === 'odoo'}
           onClick={() => pick(() => sCertFEL('odoo'))} />
-        <Opt icon="🟢" label="Vía FinanzIA" sub="Sin implementación · Q0.20 por DTE emitido"
+        <Opt icon="🟢" label="Certificador estándar" sub="Sin costo de implementación · Q0.20 por DTE emitido"
           selected={form.certFEL === 'finanz-ia'} accent="emerald"
           onClick={() => pick(() => sCertFEL('finanz-ia'))} />
       </div>
       {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
-        <p className="flex items-start gap-1.5 text-xs text-amber-400/70 mt-4">
+        <p className="flex items-start gap-1.5 text-xs text-orange-500 mt-4">
           <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
           El Q0.20/DTE es variable y se factura mensualmente por separado — no está incluido en el total mensual.
         </p>
@@ -523,10 +522,10 @@ export function QuotationCalculator() {
       </div>
 
       {result!.notes.length > 0 && (
-        <div className="px-8 py-4 border-b border-amber-500/10 bg-amber-500/5">
-          <p className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">Costos variables adicionales (no incluidos)</p>
+        <div className="px-8 py-4 border-b border-orange-500/10 bg-orange-500/5">
+          <p className="text-xs font-bold uppercase tracking-wider text-orange-500 mb-2">Costos variables adicionales (no incluidos)</p>
           {result!.notes.map((n, i) => (
-            <div key={i} className="flex gap-2 text-xs text-amber-300/80 leading-relaxed">
+            <div key={i} className="flex gap-2 text-xs text-orange-500/80 leading-relaxed">
               <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" /> {n}
             </div>
           ))}

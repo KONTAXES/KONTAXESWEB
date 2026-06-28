@@ -130,14 +130,6 @@ export function Hero() {
         {/* Subtitle */}
         <p className="text-lg md:text-xl text-gray-400 max-w-xl mx-auto mb-10 animate-fade-in">
           Contabilidad · Impuestos · Asesoría · Consultoría
-          <br />
-          <span className="text-gray-500 text-base">
-            Potenciado por{' '}
-            <span className="text-purple-400 font-semibold">Odoo</span> ·{' '}
-            <span className="text-orange-400 font-semibold">IA (Claude)</span> ·{' '}
-            <span className="text-emerald-400 font-semibold">FinanzIA</span> ·{' '}
-            <span className="text-sky-400 font-semibold">FELSimple</span>
-          </span>
         </p>
 
       </div>

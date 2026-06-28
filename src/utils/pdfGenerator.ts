@@ -10,9 +10,10 @@ export interface QuotationPDFData {
   formSummary?: string[];
 }
 
-async function getLogoBase64(): Promise<string> {
+async function getImageBase64(path: string): Promise<string> {
   try {
-    const res = await fetch('/K_V4-2.png');
+    const res = await fetch(path);
+    if (!res.ok) return '';
     const blob = await res.blob();
     return await new Promise((resolve) => {
       const reader = new FileReader();
@@ -25,7 +26,10 @@ async function getLogoBase64(): Promise<string> {
 }
 
 export async function generateQuotationPDF(data: QuotationPDFData): Promise<void> {
-  const logo = await getLogoBase64();
+  const [logo, firma] = await Promise.all([
+    getImageBase64('/K_white.png'),
+    getImageBase64('/firma-kevin.png'),
+  ]);
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Por favor permite las ventanas emergentes para descargar el PDF');
@@ -117,15 +121,28 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     /* ── Disclaimer ── */
     .disclaimer{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin-top:20px;font-size:11px;color:#1e40af;line-height:1.6;}
 
+    /* ── Signature ── */
+    .signature-section{margin-top:36px;padding-top:24px;border-top:1px solid #e0e7ff;page-break-inside:avoid;}
+    .sig-block{display:inline-block;text-align:center;min-width:200px;}
+    .sig-img{height:72px;width:auto;display:block;margin:0 auto 6px;}
+    .sig-line{border-top:1px solid #374151;margin:4px 0;}
+    .sig-name{font-weight:700;font-size:12px;color:#1a1a2e;margin-top:4px;}
+    .sig-role{font-size:11px;color:#6d28d9;}
+    .sig-company{font-size:10px;color:#6b7280;margin-top:1px;}
+
     /* ── Footer ── */
-    .footer{background:#1a0533;color:#c4b5fd;text-align:center;padding:20px 48px;font-size:11px;margin-top:32px;}
+    .footer{background:#1a0533;color:#c4b5fd;text-align:center;padding:20px 48px;font-size:11px;margin-top:32px;page-break-inside:avoid;}
     .footer strong{color:#fff;}
     .footer-divider{border-top:1px solid rgba(255,255,255,0.1);margin:10px 0;}
+
+    /* ── Page breaks ── */
+    .breakdown-section{page-break-inside:avoid;}
+    .client-section{page-break-inside:avoid;}
 
     @media print{
       body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .no-print{display:none;}
-      @page{margin:0;}
+      @page{margin:15mm 12mm;}
     }
   </style>
 </head>
@@ -149,9 +166,11 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
   <div class="body">
 
     ${clientRows ? `
+    <div class="client-section">
     <div class="section-title">Datos del Cliente</div>
     <div class="client-box">
       <table>${clientRows}</table>
+    </div>
     </div>` : ''}
 
     ${summaryRows ? `
@@ -160,6 +179,7 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
       <ul>${summaryRows}</ul>
     </div>` : ''}
 
+    <div class="breakdown-section">
     <div class="section-title">Desglose de Cotización</div>
     <table class="breakdown-table">
       <thead>
@@ -182,11 +202,22 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
       <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#92400e;margin-bottom:6px;">Notas Importantes</div>
       ${warningItems}
     </div>` : ''}
+    </div>
 
     <div class="disclaimer">
       <strong>IMPORTANTE:</strong> Esta es una cotización estimada, NO un documento formal. Para formalizar el servicio se
       enviará la propuesta oficial, cotización formal y contrato de servicios profesionales.
-      Los precios están en Quetzales (GTQ) e incluyen honorarios profesionales mensuales.
+      Los precios están en Quetzales (GTQ) e incluyen IVA.
+    </div>
+
+    <div class="signature-section">
+      <div class="sig-block">
+        ${firma ? `<img src="${firma}" alt="Firma" class="sig-img" />` : '<div style="height:72px;"></div>'}
+        <div class="sig-line"></div>
+        <div class="sig-name">Kevin A. Santos C.</div>
+        <div class="sig-role">Gerente General</div>
+        <div class="sig-company">KONTAXES CONSULTORES, S.A.</div>
+      </div>
     </div>
 
   </div>
@@ -195,8 +226,6 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     <strong>KONTAXES — Servicios Contables y Financieros</strong>
     <div class="footer-divider"></div>
     info@kontaxes.com &nbsp;·&nbsp; +502 3517-4713 &nbsp;·&nbsp; kontaxes.com
-    <br/>
-    <span style="font-size:10px;color:#a78bfa;margin-top:4px;display:block;">Potenciado por Odoo · IA (Claude) · FinanzIA · FELSimple</span>
   </div>
 
 </body>

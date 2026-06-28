@@ -123,11 +123,11 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   const obligatoria = isContabilidadObligatoria(data);
   if (obligatoria || data.contabilidadCompleta === true) {
     breakdown.push({
-      item: `Contabilidad completa con FinanzIA${obligatoria ? ' — obligatoria por ley' : ''}`,
+      item: `Contabilidad completa${obligatoria ? ' — obligatoria por ley' : ''}`,
       cost: 500,
       note: obligatoria
-        ? 'Legalmente obligatorio. Catálogo de cuentas, asientos, estados financieros en FinanzIA.'
-        : 'Recomendado financieramente. Catálogo de cuentas, asientos, estados financieros en FinanzIA.',
+        ? 'Obligatoria según normativa vigente. Catálogo de cuentas, asientos y estados financieros.'
+        : 'Catálogo de cuentas, asientos contables y estados financieros completos.',
     });
     total += 500;
   }
@@ -141,10 +141,10 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
       item: `Presentación de impuestos (${formLabel})`,
       cost: costImp,
       note: reg === 'pequeño'
-        ? 'Declaración mensual de IVA 5% (Formulario 2046)'
+        ? 'Declaración mensual de IVA 5%'
         : reg === 'opcional'
-        ? 'IVA mensual (F2000) + ISR trimestral (F2189)'
-        : 'IVA mensual (F2000) + ISR trimestral (F2189) + ISO (F2189) + Cierre anual',
+        ? 'IVA mensual · ISR mensual · ISR retenciones (proveedores y empleados) · ISR anual · otros aplicables'
+        : 'IVA mensual · IVA trimestral · ISO trimestral · ISR anual · ISR retenciones (proveedores y empleados) · otros aplicables',
     });
     total += costImp;
   }
@@ -185,7 +185,7 @@ export function buildFormSummary(data: QuotationData): string[] {
   if (data.alcance === 'compra-venta') lines.push('Compra-venta de bienes (inventarios y costos)');
   const obligatoria = isContabilidadObligatoria(data);
   if (obligatoria || data.contabilidadCompleta === true)
-    lines.push('Contabilidad completa con FinanzIA');
+    lines.push('Contabilidad completa');
   if (data.presentacionImpuestos === true)
     lines.push(`Presentación de impuestos (${FORMS[data.regimen as Regimen]} formulario(s))`);
   if (data.certFEL === 'odoo')      lines.push('Certificador FEL vía Odoo (CORPOSISTEMAS, S.A.)');
@@ -212,6 +212,7 @@ export function buildWAText(data: QuotationData, result: QuotationResult): strin
     ...(result.notes.length > 0
       ? ['📌 *Notas:*', ...result.notes.map(n => `ℹ ${n}`), '']
       : []),
+    '📎 Adjunto el PDF con el desglose completo.',
     '¿Podemos agendar una llamada para confirmar los detalles?',
   ].filter(Boolean);
   return encodeURIComponent(parts.join('\n'));
