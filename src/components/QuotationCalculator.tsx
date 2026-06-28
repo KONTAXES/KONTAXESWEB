@@ -61,9 +61,9 @@ function getActiveSteps(form: QuotationData): StepId[] {
 /* ── Sub-components ─────────────────────────────────────────────── */
 
 const Opt = ({
-  icon, label, sub, selected, badge, accent = 'purple', onClick,
+  label, sub, selected, accent = 'purple', onClick,
 }: {
-  icon: string; label: string; sub?: string; selected: boolean;
+  icon?: string; label: string; sub?: string; selected: boolean;
   badge?: string; accent?: 'purple' | 'emerald' | 'sky' | 'amber';
   onClick: () => void;
 }) => {
@@ -86,16 +86,10 @@ const Opt = ({
           : 'border-white/8 bg-white/3 hover:border-white/20 hover:bg-white/6'
       }`}
     >
-      <span className="text-2xl flex-shrink-0 leading-none">{icon}</span>
       <div className="flex-1 min-w-0">
         <p className={`font-semibold text-sm leading-snug ${selected ? 'text-white' : 'text-gray-200'}`}>{label}</p>
         {sub && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{sub}</p>}
       </div>
-      {badge && (
-        <span className="text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-          {badge}
-        </span>
-      )}
       {selected
         ? <CheckCircleIcon size={18} className={`flex-shrink-0 ${check[accent]}`} />
         : <div className="w-5 h-5 rounded-full border-2 border-white/15 flex-shrink-0" />
@@ -104,9 +98,8 @@ const Opt = ({
   );
 };
 
-const Q = ({ icon, question, hint }: { icon: string; question: string; hint?: string }) => (
+const Q = ({ question, hint }: { icon?: string; question: string; hint?: string }) => (
   <div className="mb-7">
-    <span className="text-5xl mb-5 block leading-none">{icon}</span>
     <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-2"
       style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
       {question}
@@ -283,9 +276,9 @@ export function QuotationCalculator() {
         <Q icon="📋" question="¿Cuál es tu régimen fiscal?" hint="¿Bajo qué régimen tributas actualmente?" />
         <div className="space-y-3">
           {([
-            ['pequeño', 'Pequeño Contribuyente', 'IVA 5% · 1 formulario · Ingresos < Q150,000/año'],
-            ['opcional', 'Régimen Opcional (IVA 12% + ISR 5–7%)', 'IVA mensual + ISR trimestral · 2 formularios'],
-            ['general',  'Régimen General (IVA 12% + ISR 25%)',   'IVA mensual + ISR sobre utilidades · 4 formularios'],
+            ['pequeño', 'Pequeño Contribuyente', 'IVA 5% · Ingresos < Q150,000/año'],
+            ['opcional', 'Régimen Opcional (IVA 12% + ISR 5–7%)', 'IVA mensual + ISR trimestral'],
+            ['general',  'Régimen General (IVA 12% + ISR 25%)',   'IVA mensual + ISR sobre utilidades'],
           ] as [Regimen, string, string][]).map(([v, label, sub]) => (
             <button key={v} onClick={() => pick(() => sRegimen(v))}
               className={`w-full text-left flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border-2 transition-all duration-200 ${
@@ -296,10 +289,6 @@ export function QuotationCalculator() {
               <div className="flex-1">
                 <p className={`font-semibold text-sm ${form.regimen === v ? 'text-white' : 'text-gray-200'}`}>{label}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
-              </div>
-              <div className="text-right flex-shrink-0 mr-2">
-                <p className="text-sm font-bold text-purple-300">desde Q{bases[v] + extra}</p>
-                <p className="text-xs text-gray-600">/mes</p>
               </div>
               {form.regimen === v
                 ? <CheckCircleIcon size={18} className="text-purple-400 flex-shrink-0" />
@@ -316,10 +305,10 @@ export function QuotationCalculator() {
     <>
       <Q icon="💰" question="¿Tus activos superan Q25,000?" hint="Determina si la contabilidad completa es legalmente obligatoria para tu sociedad." />
       <div className="space-y-3">
-        <Opt icon="✅" label="Sí, superan Q25,000" sub="Contabilidad completa obligatoria por ley · +Q500/mes"
+        <Opt label="Sí, superan Q25,000" sub="Contabilidad completa obligatoria por ley"
           selected={form.activosMayor25k === true} accent="amber"
           onClick={() => pick(() => sActivos(true))} />
-        <Opt icon="❌" label="No, son Q25,000 o menos" sub="Contabilidad completa opcional"
+        <Opt label="No, son Q25,000 o menos" sub="Contabilidad completa opcional"
           selected={form.activosMayor25k === false} accent="sky"
           onClick={() => pick(() => sActivos(false))} />
       </div>
@@ -330,10 +319,10 @@ export function QuotationCalculator() {
     <>
       <Q icon="🧭" question="¿A qué se dedica tu negocio?" hint="Define el alcance principal de tus actividades." />
       <div className="space-y-3">
-        <Opt icon="💼" label="Servicios" sub="Técnicos, profesionales, consultoría, etc."
+        <Opt label="Servicios" sub="Técnicos, profesionales, consultoría, etc."
           selected={form.alcance === 'servicios'}
           onClick={() => pick(() => sAlcance('servicios'))} />
-        <Opt icon="🛒" label="Compra-venta de bienes" sub="Sistema de inventarios y costo de ventas · +Q500/mes"
+        <Opt label="Compra-venta de bienes" sub="Sistema de inventarios y costo de ventas"
           selected={form.alcance === 'compra-venta'} accent="emerald"
           onClick={() => pick(() => sAlcance('compra-venta'))} />
       </div>
@@ -344,10 +333,10 @@ export function QuotationCalculator() {
     <>
       <Q icon="📒" question="¿Deseas contabilidad completa?" hint="No es fiscalmente obligatorio, pero es recomendado financieramente para una gestión sólida." />
       <div className="space-y-3">
-        <Opt icon="📊" label="Sí, contabilidad completa (+Q500/mes)" sub="Catálogo de cuentas, asientos contables y estados financieros"
+        <Opt label="Sí, contabilidad completa" sub="Catálogo de cuentas, asientos contables y estados financieros"
           selected={form.contabilidadCompleta === true}
           onClick={() => pick(() => sContabilidad(true))} />
-        <Opt icon="⏩" label="No por ahora" sub="Solo contabilidad básica sin registro completo"
+        <Opt label="No por ahora" sub="Solo contabilidad básica sin registro completo"
           selected={form.contabilidadCompleta === false} accent="sky"
           onClick={() => pick(() => sContabilidad(false))} />
       </div>
@@ -376,11 +365,11 @@ export function QuotationCalculator() {
         )}
         <Q icon="🧾" question="¿Presentamos tus impuestos?" hint={reg ? hintMap[reg] : ''} />
         <div className="space-y-3">
-          <Opt icon="✅" label={`Sí (+Q${cost}/mes)`}
+          <Opt label="Sí, KONTAXES presenta mis impuestos"
             sub={`KONTAXES presenta ${n === 1 ? 'tu formulario' : 'tus formularios'} ante la SAT`}
             selected={form.presentacionImpuestos === true} accent="emerald"
             onClick={() => pick(() => sImpuestos(true))} />
-          <Opt icon="⏩" label="No, lo gestiono yo" sub="Presentas tus formularios directamente"
+          <Opt label="No, lo gestiono yo" sub="Presentas tus formularios directamente"
             selected={form.presentacionImpuestos === false}
             onClick={() => pick(() => sImpuestos(false))} />
         </div>
@@ -390,22 +379,19 @@ export function QuotationCalculator() {
 
   const stepCertFEL = () => (
     <>
-      <Q icon="📄" question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
+      <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
       <div className="space-y-3">
-        <Opt icon="⏩" label="No necesito por ahora" sub="Puedes activarlo en cualquier momento"
-          selected={form.certFEL === 'ninguno'}
-          onClick={() => pick(() => sCertFEL('ninguno'))} />
-        <Opt icon="🟣" label="Certificador ERP" sub="Q375 implementación (único) + Q0.20 por DTE emitido"
-          badge="popular" selected={form.certFEL === 'odoo'}
-          onClick={() => pick(() => sCertFEL('odoo'))} />
-        <Opt icon="🟢" label="Certificador estándar" sub="Sin costo de implementación · Q0.20 por DTE emitido"
+        <Opt label="Sí, necesito certificador FEL" sub="Q0.20 por DTE emitido, facturado mensualmente por separado"
           selected={form.certFEL === 'finanz-ia'} accent="emerald"
           onClick={() => pick(() => sCertFEL('finanz-ia'))} />
+        <Opt label="No por ahora" sub="Puedes activarlo en cualquier momento"
+          selected={form.certFEL === 'ninguno'}
+          onClick={() => pick(() => sCertFEL('ninguno'))} />
       </div>
-      {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
+      {form.certFEL === 'finanz-ia' && (
         <p className="flex items-start gap-1.5 text-xs text-orange-500 mt-4">
           <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
-          El Q0.20/DTE es variable y se factura mensualmente por separado — no está incluido en el total mensual.
+          El costo por DTE es variable y se factura mensualmente por separado — no está incluido en el total mensual.
         </p>
       )}
     </>
@@ -415,10 +401,10 @@ export function QuotationCalculator() {
     <>
       <Q icon="📱" question="¿Facturas por WhatsApp?" hint="FELSimple — Emite facturas electrónicas certificadas directo desde WhatsApp en segundos." />
       <div className="space-y-3">
-        <Opt icon="💬" label="Sí, quiero FELSimple (+Q50/mes)" sub="Factura desde WhatsApp, certifica con la SAT al instante"
+        <Opt label="Sí, quiero FELSimple" sub="Factura desde WhatsApp, certifica con la SAT al instante"
           selected={form.whatsappFEL === true} accent="emerald"
           onClick={() => pick(() => sWhatsappFEL(true))} />
-        <Opt icon="⏩" label="No por ahora" sub="Puedes activarlo después"
+        <Opt label="No por ahora" sub="Puedes activarlo después"
           selected={form.whatsappFEL === false}
           onClick={() => pick(() => sWhatsappFEL(false))} />
       </div>
@@ -443,14 +429,6 @@ export function QuotationCalculator() {
               className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all" />
           ))}
         </div>
-        {preview.total > 0 && (
-          <div className="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-purple-500/8 border border-purple-500/15 mb-5">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Estimado preliminar</span>
-            <span className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Q {preview.total.toLocaleString('es-GT')}<span className="text-gray-500 text-sm font-normal">/mes</span>
-            </span>
-          </div>
-        )}
         <button onClick={handleCalc}
           className="w-full py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base flex items-center justify-center gap-2">
           <CalculatorIcon size={20} /> Ver mi cotización →

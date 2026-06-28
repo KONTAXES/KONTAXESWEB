@@ -136,8 +136,10 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     .footer-divider{border-top:1px solid rgba(255,255,255,0.1);margin:10px 0;}
 
     /* ── Page breaks ── */
-    .breakdown-section{page-break-inside:avoid;}
+    .breakdown-section{page-break-inside:auto;}
     .client-section{page-break-inside:avoid;}
+    .breakdown-table tbody tr{page-break-inside:avoid;}
+    .total-row{page-break-inside:avoid;}
 
     @media print{
       body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
