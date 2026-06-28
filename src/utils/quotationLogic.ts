@@ -193,16 +193,22 @@ export function buildFormSummary(data: QuotationData): string[] {
   if (data.activosMayor25k === true)  lines.push('Activos mayores a Q25,000');
   if (data.activosMayor25k === false) lines.push('Activos hasta Q25,000');
   if (data.alcance === 'servicios')    lines.push('Negocio de servicios');
-  if (data.alcance === 'compra-venta') lines.push('Compra-venta de bienes (inventarios y costos)');
+  if (data.alcance === 'compra-venta') lines.push('Compra-venta de bienes');
   const obligatoria = isContabilidadObligatoria(data);
   if (obligatoria || data.contabilidadCompleta === true)
     lines.push('Contabilidad completa');
-  if (data.presentacionImpuestos === true)
-    lines.push(`Presentación de impuestos (${FORMS[data.regimen as Regimen]} formulario(s))`);
+  if (data.presentacionImpuestos === true) {
+    const reg = data.regimen as Regimen;
+    const taxDetail =
+      reg === 'pequeño'  ? 'IVA 5% mensual' :
+      reg === 'opcional' ? 'IVA mensual · ISR anual · ISR retenciones proveedores · ISR retenciones empleados' :
+                           'IVA mensual · ISR trimestral · ISO trimestral · ISR anual · ISR retenciones proveedores · ISR retenciones empleados';
+    lines.push(`Presentación de impuestos — ${taxDetail}`);
+  }
   if (data.certFEL === 'odoo')      lines.push('Certificador FEL');
   if (data.certFEL === 'finanz-ia') lines.push('Certificador FEL');
   if (data.certFEL === 'ninguno')   lines.push('Sin certificador FEL por ahora');
-  if (data.whatsappFEL === true)    lines.push('Facturas por WhatsApp (+Q50/mes)');
+  if (data.whatsappFEL === true)    lines.push('Facturas por WhatsApp');
   return lines;
 }
 
