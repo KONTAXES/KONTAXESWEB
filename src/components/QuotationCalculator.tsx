@@ -279,32 +279,14 @@ export function QuotationCalculator() {
   );
 
   const stepRegimen = () => {
-    const bases: Record<Regimen, number> = { pequeño: 250, opcional: 450, general: 550 };
-    const extra = form.contribuyente === 'sociedad' ? 500 : 0;
     return (
       <>
         <Q icon="📋" question="¿Cuál es tu régimen fiscal?" hint="¿Bajo qué régimen tributas actualmente?" />
         <div className="space-y-3">
-          {([
-            ['pequeño', 'Pequeño Contribuyente', 'IVA 5% · Ingresos < Q150,000/año'],
-            ['opcional', 'Régimen Opcional (IVA 12% + ISR 5–7%)', 'IVA mensual + ISR trimestral'],
-            ['general',  'Régimen General (IVA 12% + ISR 25%)',   'IVA mensual + ISR sobre utilidades'],
-          ] as [Regimen, string, string][]).map(([v, label, sub]) => (
-            <button key={v} onClick={() => pick(() => sRegimen(v))}
-              className={`w-full text-left flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border-2 transition-all duration-200 ${
-                form.regimen === v
-                  ? 'border-purple-500/60 bg-purple-500/15 shadow-lg'
-                  : 'border-white/8 bg-white/3 hover:border-white/20 hover:bg-white/6'
-              }`}>
-              <div className="flex-1">
-                <p className={`font-semibold text-sm ${form.regimen === v ? 'text-white' : 'text-gray-200'}`}>{label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
-              </div>
-              {form.regimen === v
-                ? <CheckCircleIcon size={18} className="text-purple-400 flex-shrink-0" />
-                : <div className="w-5 h-5 rounded-full border-2 border-white/15 flex-shrink-0" />
-              }
-            </button>
+          {(['pequeño', 'opcional', 'general'] as Regimen[]).map(v => (
+            <Opt key={v} label={REGIMEN_LABEL[v]}
+              selected={form.regimen === v}
+              onClick={() => pick(() => sRegimen(v))} />
           ))}
         </div>
       </>
