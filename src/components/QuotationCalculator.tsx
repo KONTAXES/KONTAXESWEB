@@ -2,30 +2,73 @@ import React, { useState } from 'react';
 import {
   CalculatorIcon, CheckCircleIcon, AlertCircleIcon,
   DownloadIcon, MessageCircleIcon, MailIcon,
-  ChevronLeftIcon, ArrowRightIcon, PhoneIcon,
+  ChevronLeftIcon, ArrowRightIcon, PhoneIcon, ExternalLinkIcon,
+  PlusIcon, MinusIcon,
 } from 'lucide-react';
 import {
-  QuotationData, QuotationResult, ServiceType, Contribuyente,
-  Regimen, Alcance, CertFEL,
-  calculateQuotation, buildFormSummary, buildWAText, buildEmailBody,
+  QuotationData, QuotationResult,
+  ServiceType, Contribuyente, Regimen, Alcance, CertFEL,
+  OdooSubtype, OutsourcingRole, AccesoPlan,
+  calculateQuotation, calculateOutsourcingQuotation, calculateAccesoQuotation,
+  buildFormSummary, buildWAText, buildEmailBody,
   isContabilidadObligatoria, needsActivosQuestion,
-  REGIMEN_LABEL, CONTRIB_LABEL, SERVICE_LABEL, FORMS,
+  REGIMEN_LABEL, SERVICE_LABEL, FORMS,
+  OUTSOURCING_ROLE_LABEL, ACCESO_PLANS, PRICE_USUARIO_ADICIONAL, KTX_MODULES,
 } from '../utils/quotationLogic';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 
-const WA_NUMBER = '50236387717';
+const WA_NUMBER  = '50236387717';
+const LEXUM_WA   = '50232406009';
 
 /* ── Step IDs ───────────────────────────────────────────────────── */
 type StepId =
-  | 'service-type' | 'contribuyente' | 'regimen' | 'activos'
-  | 'alcance' | 'contabilidad' | 'planilla' | 'impuestos' | 'cert-fel'
-  | 'wa-fel' | 'contact' | 'contact-service';
+  | 'service-type'
+  | 'contribuyente' | 'regimen' | 'activos'
+  | 'alcance' | 'contabilidad' | 'planilla' | 'impuestos'
+  | 'cert-fel' | 'wa-fel'
+  | 'outsourcing-role'
+  | 'odoo-subtype' | 'odoo-modulos'
+  | 'implementacion'
+  | 'acceso-plan' | 'acceso-usuarios'
+  | 'contact' | 'contact-service';
 
 function getActiveSteps(form: QuotationData): StepId[] {
   const s: StepId[] = ['service-type'];
   if (!form.serviceType) return s;
-  if (form.serviceType !== 'contable') { s.push('contact-service'); return s; }
 
+  /* ── Contact-only services ── */
+  if (['auditoria', 'admin-financiero', 'consultoria-fiscal', 'legales'].includes(form.serviceType)) {
+    s.push('contact-service');
+    return s;
+  }
+
+  /* ── Odoo ── */
+  if (form.serviceType === 'odoo') {
+    s.push('odoo-subtype');
+    if (!form.odooSubtype) return s;
+    if (form.odooSubtype === 'modulos-ktx') { s.push('odoo-modulos'); return s; }
+    if (form.odooSubtype === 'implementacion') {
+      s.push('implementacion');
+      if (!form.implementacionChoice) return s;
+      if (form.implementacionChoice === 'partner') { s.push('contact-service'); return s; }
+      // implementacion → acceso flow
+    }
+    // acceso (directo o desde implementacion)
+    s.push('acceso-plan');
+    if (!form.accesoPlan) return s;
+    s.push('acceso-usuarios');
+    if (form.accesoUsuariosAdicionales === -1) return s;
+    s.push('contact');
+    return s;
+  }
+
+  /* ── Outsourcing ── */
+  if (form.serviceType === 'outsourcing') {
+    s.push('outsourcing-role');
+    if (!form.outsourcingRole) return s;
+  }
+
+  /* ── Contable + Outsourcing shared flow ── */
   s.push('contribuyente');
   if (!form.contribuyente) return s;
 
@@ -66,12 +109,15 @@ function getActiveSteps(form: QuotationData): StepId[] {
 
 function getTotalSteps(form: QuotationData): number {
   if (!form.serviceType) return 2;
-  if (form.serviceType !== 'contable') return 2;
-  let n = 6;
+  if (['auditoria', 'admin-financiero', 'consultoria-fiscal', 'legales'].includes(form.serviceType)) return 2;
+  if (form.serviceType === 'odoo') {
+    if (form.odooSubtype === 'modulos-ktx') return 3;
+    return 5; // subtype + plan + usuarios + contact (+implementacion optional)
+  }
+  let n = form.serviceType === 'outsourcing' ? 7 : 6;
   const maybeActivos = !form.contribuyente || (form.contribuyente === 'sociedad' && (!form.regimen || form.regimen === 'pequeño'));
   if (maybeActivos) n++;
   if (!isContabilidadObligatoria(form)) n++;
-  // planilla step shows when contabilidad completa
   const maybeContab = !form.contabilidadCompleta || form.contabilidadCompleta === true || isContabilidadObligatoria(form);
   if (maybeContab) n++;
   return n + 2;
@@ -80,21 +126,21 @@ function getTotalSteps(form: QuotationData): number {
 /* ── Sub-components ─────────────────────────────────────────────── */
 
 const Opt = ({
-  label, sub, selected, accent = 'purple', onClick,
+  label, selected, accent = 'purple', onClick,
 }: {
-  icon?: string; label: string; sub?: string; selected: boolean;
-  badge?: string; accent?: 'purple' | 'emerald' | 'sky' | 'amber';
+  label: string; selected: boolean;
+  accent?: 'purple' | 'emerald' | 'sky' | 'amber';
   onClick: () => void;
 }) => {
   const ring: Record<string, string> = {
-    purple: 'border-purple-500/60 bg-purple-500/15 shadow-purple-500/10',
+    purple:  'border-purple-500/60 bg-purple-500/15 shadow-purple-500/10',
     emerald: 'border-emerald-500/60 bg-emerald-500/15',
-    sky:    'border-sky-500/60 bg-sky-500/15',
-    amber:  'border-amber-500/60 bg-amber-500/15',
+    sky:     'border-sky-500/60 bg-sky-500/15',
+    amber:   'border-amber-500/60 bg-amber-500/15',
   };
   const check: Record<string, string> = {
     purple: 'text-purple-400', emerald: 'text-emerald-400',
-    sky: 'text-sky-400', amber: 'text-amber-400',
+    sky: 'text-sky-400',       amber:   'text-amber-400',
   };
   return (
     <button
@@ -116,7 +162,7 @@ const Opt = ({
   );
 };
 
-const Q = ({ question, hint }: { icon?: string; question: string; hint?: string }) => (
+const Q = ({ question, hint }: { question: string; hint?: string }) => (
   <div className="mb-7">
     <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-2"
       style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -128,26 +174,29 @@ const Q = ({ question, hint }: { icon?: string; question: string; hint?: string 
 
 /* ── Empty form ─────────────────────────────────────────────────── */
 const EMPTY: QuotationData = {
-  serviceType: '', contribuyente: '', regimen: '',
-  activosMayor25k: null, alcance: '', contabilidadCompleta: null,
-  planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
+  serviceType: '',
+  contribuyente: '', regimen: '', activosMayor25k: null,
+  alcance: '', contabilidadCompleta: null, planillaIGSS: null,
+  presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
+  outsourcingRole: '',
+  odooSubtype: '', implementacionChoice: '', accesoPlan: '', accesoUsuariosAdicionales: -1,
   nombre: '', empresa: '', whatsapp: '', correo: '',
 };
 
 /* ── Main component ─────────────────────────────────────────────── */
 export function QuotationCalculator() {
-  const [form, setForm]       = useState<QuotationData>(EMPTY);
-  const [idx, setIdx]         = useState(0);
-  const [key, setKey]         = useState(0);
-  const [back, setBack]       = useState(false);
-  const [result, setResult]   = useState<QuotationResult | null>(null);
+  const [form, setForm]           = useState<QuotationData>(EMPTY);
+  const [idx, setIdx]             = useState(0);
+  const [key, setKey]             = useState(0);
+  const [back, setBack]           = useState(false);
+  const [result, setResult]       = useState<QuotationResult | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [contactError, setContactError] = useState(false);
 
-  const steps  = getActiveSteps(form);
-  const stepId = steps[Math.min(idx, steps.length - 1)];
+  const steps     = getActiveSteps(form);
+  const stepId    = steps[Math.min(idx, steps.length - 1)];
   const totalSteps = getTotalSteps(form);
-  const prog = Math.round(((idx + 1) / totalSteps) * 100);
+  const prog      = Math.round(((idx + 1) / totalSteps) * 100);
 
   /* navigation */
   const advance = () => { setBack(false); setKey(k => k + 1); setIdx(i => i + 1); };
@@ -157,28 +206,46 @@ export function QuotationCalculator() {
   };
   const pick = (setter: () => void) => { setter(); setTimeout(advance, 300); };
 
-  /* setters with cascade reset */
-  const sServiceType      = (v: ServiceType)   => setForm({ ...EMPTY, serviceType: v, nombre: form.nombre, empresa: form.empresa, whatsapp: form.whatsapp, correo: form.correo });
-  const sContribuyente    = (v: Contribuyente) => setForm(p => ({ ...p, contribuyente: v, regimen: '', activosMayor25k: null, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
-  const sRegimen          = (v: Regimen)       => setForm(p => ({ ...p, regimen: v, activosMayor25k: null, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
-  const sActivos          = (v: boolean)       => setForm(p => ({ ...p, activosMayor25k: v, alcance: '', contabilidadCompleta: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
-  const sAlcance          = (v: Alcance) => {
+  /* setters */
+  const sServiceType   = (v: ServiceType)   => setForm({ ...EMPTY, serviceType: v, nombre: form.nombre, empresa: form.empresa, whatsapp: form.whatsapp, correo: form.correo });
+  const sContribuyente = (v: Contribuyente) => setForm(p => ({ ...p, contribuyente: v, regimen: '', activosMayor25k: null, alcance: '', contabilidadCompleta: null, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sRegimen       = (v: Regimen)       => setForm(p => ({ ...p, regimen: v, activosMayor25k: null, alcance: '', contabilidadCompleta: null, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sActivos       = (v: boolean)       => setForm(p => ({ ...p, activosMayor25k: v, alcance: '', contabilidadCompleta: null, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sAlcance       = (v: Alcance)       => {
     const ob = isContabilidadObligatoria(form);
     setForm(p => ({ ...p, alcance: v, contabilidadCompleta: ob ? true : null, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
   };
-  const sContabilidad     = (v: boolean)  => setForm(p => ({ ...p, contabilidadCompleta: v, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
-  const sPlanillaIGSS     = (v: boolean)  => setForm(p => ({ ...p, planillaIGSS: v, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
-  const sImpuestos        = (v: boolean)  => setForm(p => ({ ...p, presentacionImpuestos: v, certFEL: '', whatsappFEL: null }));
-  const sCertFEL          = (v: CertFEL)  => setForm(p => ({ ...p, certFEL: v, whatsappFEL: null }));
-  const sWhatsappFEL      = (v: boolean)  => setForm(p => ({ ...p, whatsappFEL: v }));
-  const sContact          = (k: 'nombre' | 'empresa' | 'whatsapp' | 'correo', v: string) => setForm(p => ({ ...p, [k]: v }));
+  const sContabilidad  = (v: boolean)  => setForm(p => ({ ...p, contabilidadCompleta: v, planillaIGSS: null, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sPlanillaIGSS  = (v: boolean)  => setForm(p => ({ ...p, planillaIGSS: v, presentacionImpuestos: null, certFEL: '', whatsappFEL: null }));
+  const sImpuestos     = (v: boolean)  => setForm(p => ({ ...p, presentacionImpuestos: v, certFEL: '', whatsappFEL: null }));
+  const sCertFEL       = (v: CertFEL)  => setForm(p => ({ ...p, certFEL: v, whatsappFEL: null }));
+  const sWhatsappFEL   = (v: boolean)  => setForm(p => ({ ...p, whatsappFEL: v }));
+  const sOutsourcingRole = (v: OutsourcingRole) => setForm(p => ({ ...p, outsourcingRole: v }));
+  const sOdooSubtype   = (v: OdooSubtype) => setForm(p => ({ ...p, odooSubtype: v, implementacionChoice: '', accesoPlan: '', accesoUsuariosAdicionales: -1 }));
+  const sImplementacionChoice = (v: 'acceso' | 'partner') => setForm(p => ({ ...p, implementacionChoice: v, accesoPlan: '', accesoUsuariosAdicionales: -1 }));
+  const sAccesoPlan    = (v: AccesoPlan) => setForm(p => ({ ...p, accesoPlan: v, accesoUsuariosAdicionales: 0 }));
+  const sContact       = (k: 'nombre' | 'empresa' | 'whatsapp' | 'correo', v: string) => setForm(p => ({ ...p, [k]: v }));
 
-  /* PDF / share */
+  /* calc + PDF */
   const handleCalc = () => {
     const ok = !!(form.nombre?.trim() && form.empresa?.trim() && form.whatsapp?.trim() && form.correo?.trim());
     if (!ok) { setContactError(true); return; }
     setContactError(false);
-    setResult(calculateQuotation(form));
+    let r: QuotationResult;
+    if (form.serviceType === 'outsourcing') {
+      r = calculateOutsourcingQuotation(form);
+    } else if (form.serviceType === 'odoo') {
+      r = calculateAccesoQuotation(form);
+    } else {
+      r = calculateQuotation(form);
+    }
+    setResult(r);
+  };
+
+  const getPdfVariant = (): 'contable' | 'saas' | 'outsourcing' => {
+    if (form.serviceType === 'outsourcing') return 'outsourcing';
+    if (form.serviceType === 'odoo') return 'saas';
+    return 'contable';
   };
 
   const handlePDF = async () => {
@@ -191,7 +258,7 @@ export function QuotationCalculator() {
         breakdown: result.breakdown, total: result.total,
         warnings: result.notes,
         date: new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' }),
-        formSummary: buildFormSummary(form),
+        pdfVariant: getPdfVariant(),
       });
     } finally { setPdfLoading(false); }
   };
@@ -208,41 +275,46 @@ export function QuotationCalculator() {
     setTimeout(() => window.open(`mailto:info@kontaxes.com?subject=${encodeURIComponent('Cotización KONTAXES')}&body=${buildEmailBody(form, result)}`, '_blank'), 400);
   };
 
-  const handleReset = () => { setForm(EMPTY); setIdx(0); setKey(k => k + 1); setBack(false); setResult(null); };
+  const handleReset = () => { setForm(EMPTY); setIdx(0); setKey(k => k + 1); setBack(false); setResult(null); setContactError(false); };
 
-  /* step has a value already (show Continuar button when revisiting) */
   const currentVal = (() => {
     switch (stepId) {
-      case 'service-type':  return form.serviceType;
-      case 'contribuyente': return form.contribuyente;
-      case 'regimen':       return form.regimen;
-      case 'activos':       return form.activosMayor25k;
-      case 'alcance':       return form.alcance;
-      case 'contabilidad':  return form.contabilidadCompleta;
-      case 'planilla':      return form.planillaIGSS;
-      case 'impuestos':     return form.presentacionImpuestos;
-      case 'cert-fel':      return form.certFEL;
-      case 'wa-fel':        return form.whatsappFEL;
+      case 'service-type':    return form.serviceType;
+      case 'contribuyente':   return form.contribuyente;
+      case 'regimen':         return form.regimen;
+      case 'activos':         return form.activosMayor25k;
+      case 'alcance':         return form.alcance;
+      case 'contabilidad':    return form.contabilidadCompleta;
+      case 'planilla':        return form.planillaIGSS;
+      case 'impuestos':       return form.presentacionImpuestos;
+      case 'cert-fel':        return form.certFEL;
+      case 'wa-fel':          return form.whatsappFEL;
+      case 'outsourcing-role': return form.outsourcingRole;
+      case 'odoo-subtype':    return form.odooSubtype;
+      case 'implementacion':  return form.implementacionChoice;
+      case 'acceso-plan':     return form.accesoPlan;
       default: return null;
     }
   })();
   const hasVal = currentVal !== null && currentVal !== '';
-  const canContinue = hasVal && stepId !== 'contact' && stepId !== 'contact-service' && idx < steps.length - 1;
+  const canContinue = hasVal && stepId !== 'contact' && stepId !== 'contact-service' && stepId !== 'odoo-modulos' && idx < steps.length - 1;
 
-  /* ── step renderers ───────────────────────────────────────────── */
+  /* ── Step renderers ───────────────────────────────────────────── */
 
   const stepServiceType = () => (
     <>
-      <Q icon="🎯" question="¿Qué servicio necesitas?" hint="Selecciona el tipo para comenzar tu cotización." />
-      <div className="space-y-3">
+      <Q question="¿Qué servicio necesitas?" hint="Selecciona el tipo para comenzar tu cotización." />
+      <div className="space-y-2">
         {([
-          ['contable',           '📊', 'Servicios Contables',        'Contabilidad mensual, impuestos y asesoría'],
-          ['auditoria',          '🔍', 'Auditoría',                   'Revisión y certificación de estados financieros'],
-          ['outsourcing',        '🤝', 'Outsourcing',                 'Externalización de procesos contables'],
-          ['modulos-odoo',       '🧩', 'Módulos Odoo',                'Módulos personalizados para tu Odoo'],
-          ['implementacion-odoo','⚙️', 'Implementación Odoo',         'Te ayudamos (no somos partners oficiales)'],
-        ] as [ServiceType, string, string, string][]).map(([v, icon, label, sub]) => (
-          <Opt key={v} icon={icon} label={label} sub={sub}
+          ['contable',            'Servicios Contables'],
+          ['admin-financiero',    'Servicios Administrativos-Financieros'],
+          ['auditoria',           'Auditoría'],
+          ['consultoria-fiscal',  'Consultoría y Asesoría Fiscal'],
+          ['outsourcing',         'Outsourcing'],
+          ['odoo',                'Odoo'],
+          ['legales',             'Servicios Legales'],
+        ] as [ServiceType, string][]).map(([v, label]) => (
+          <Opt key={v} label={label}
             selected={form.serviceType === v}
             onClick={() => pick(() => sServiceType(v))} />
         ))}
@@ -251,74 +323,242 @@ export function QuotationCalculator() {
   );
 
   const stepContactService = () => {
-    const map: Record<string, [string, string]> = {
-      auditoria:          ['🔍', 'Requiere evaluación personalizada del alcance, documentación y períodos a auditar. Contáctanos para una propuesta a la medida.'],
-      outsourcing:        ['🤝', 'Se cotiza según volumen de operaciones, cantidad de colaboradores y procesos a externalizar. Hablemos.'],
-      'modulos-odoo':     ['🧩', 'Depende de los módulos requeridos, número de usuarios y configuraciones. Trabajamos con Odoo Community y Enterprise.'],
-      'implementacion-odoo': ['⚙️', 'Ayudamos con tu implementación de Odoo. La cotización depende del alcance y horas de consultoría.'],
-    };
-    const [icon, desc] = map[form.serviceType] ?? ['📋', 'Contáctanos para más información.'];
-    const label = SERVICE_LABEL[form.serviceType as ServiceType] ?? '';
-    return (
-      <div className="text-center py-6">
-        <span className="text-6xl mb-5 block">{icon}</span>
-        <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{label}</h3>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8 leading-relaxed">{desc}</p>
-        <div className="space-y-3 max-w-xs mx-auto">
-          <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${label}`)}`}
+    const svc = form.serviceType as ServiceType;
+
+    /* Servicios Legales → LEXUM */
+    if (svc === 'legales') {
+      return (
+        <div className="text-center py-4">
+          <p className="text-gray-300 text-sm mb-2 font-semibold">Servicios Legales</p>
+          <p className="text-gray-400 text-sm max-w-xs mx-auto mb-6 leading-relaxed">
+            Para servicios legales te referimos al <strong className="text-white">Bufete Jurídico LEXUM</strong>,
+            nuestra alianza estratégica en asesoría legal empresarial.
+          </p>
+          <a href={`https://wa.me/${LEXUM_WA}?text=${encodeURIComponent('Hola LEXUM, me refirió KONTAXES y necesito asesoría legal.')}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full">
-            <PhoneIcon size={15} /> Contactar por WhatsApp
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full mb-2">
+            <PhoneIcon size={15} /> Contactar a LEXUM por WhatsApp
           </a>
-          <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${label}`)}`}
+          <p className="text-xs text-gray-600 mt-4">📞 3240-6009 · 5179-1610</p>
+        </div>
+      );
+    }
+
+    /* Implementación Odoo → partner oficial */
+    if (svc === 'odoo' && form.implementacionChoice === 'partner') {
+      return (
+        <div className="py-2">
+          <p className="text-gray-300 text-sm font-semibold mb-2">Partner Oficial de Odoo</p>
+          <div className="px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-5">
+            <p className="text-xs text-amber-300 leading-relaxed">
+              <strong>Nota:</strong> KONTAXES CONSULTORES, S.A. no es un partner oficial de Odoo.
+              Te referiremos a un partner certificado para tu implementación.
+            </p>
+          </div>
+          <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Hola KONTAXES, necesito que me refieran a un partner oficial de Odoo para una implementación.')}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full mb-2">
+            <PhoneIcon size={15} /> Solicitar referido por WhatsApp
+          </a>
+          <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent('Implementación Odoo — referido a partner')}`}
             className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm w-full">
             <MailIcon size={15} /> Enviar correo
           </a>
         </div>
+      );
+    }
+
+    /* Descripciones por servicio */
+    const info: Record<string, [string, string[]]> = {
+      auditoria:           ['Auditoría', ['Revisión y certificación de estados financieros', 'Auditoría interna y externa', 'Dictamen de cumplimiento fiscal']],
+      'admin-financiero':  ['Servicios Administrativos-Financieros', ['Tesorería — gestión de flujo de caja y pagos', 'Cuentas por Cobrar — seguimiento de clientes', 'Cuentas por Pagar — gestión de proveedores', 'Análisis Financiero — indicadores y reportes ejecutivos']],
+      'consultoria-fiscal':['Consultoría y Asesoría Fiscal', ['Planificación Fiscal Estratégica', '¿Qué régimen fiscal me conviene?', 'Resolución de dudas fiscales puntuales', 'KONSULTAXES IA — asistente fiscal inteligente']],
+    };
+    const [title, items] = info[svc] ?? [SERVICE_LABEL[svc], []];
+
+    return (
+      <div>
+        <p className="text-gray-300 text-sm font-semibold mb-3">{title}</p>
+        {items.length > 0 && (
+          <ul className="space-y-1 mb-6">
+            {items.map((it, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                <CheckCircleIcon size={12} className="text-purple-400 flex-shrink-0 mt-0.5" />
+                {it}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-gray-500 text-xs mb-4">Requiere evaluación personalizada. Contáctanos para una propuesta a la medida.</p>
+        <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${title}`)}`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full mb-2">
+          <PhoneIcon size={15} /> Contactar por WhatsApp
+        </a>
+        <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${title}`)}`}
+          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm w-full">
+          <MailIcon size={15} /> Enviar correo
+        </a>
       </div>
     );
   };
 
-  const stepContribuyente = () => (
+  /* ── Outsourcing role ── */
+  const stepOutsourcingRole = () => (
     <>
-      <Q icon="🏢" question="¿Quién es el contribuyente?" hint="¿La responsabilidad legal recae en una persona natural o jurídica?" />
+      <Q question="¿Qué perfil necesitas?" hint="Selecciona el nivel del profesional que externalizarás." />
       <div className="space-y-3">
-        {([
-          ['individual', '👤', 'Persona / Comerciante Individual', 'Responsabilidad recae en una persona natural'],
-          ['sociedad',   '🏛️', 'Sociedad / Empresa (S.A.)',        'Responsabilidad recae en una persona jurídica'],
-        ] as [Contribuyente, string, string, string][]).map(([v, icon, label, sub]) => (
-          <Opt key={v} icon={icon} label={label} sub={sub}
-            selected={form.contribuyente === v}
-            onClick={() => pick(() => sContribuyente(v))} />
+        {(Object.entries(OUTSOURCING_ROLE_LABEL) as [OutsourcingRole, string][]).map(([v, label]) => (
+          <Opt key={v} label={label}
+            selected={form.outsourcingRole === v}
+            onClick={() => pick(() => sOutsourcingRole(v))} />
         ))}
       </div>
     </>
   );
 
-  const stepRegimen = () => {
+  /* ── Odoo sub-type ── */
+  const stepOdooSubtype = () => (
+    <>
+      <Q question="¿Qué necesitas de Odoo?" />
+      <div className="space-y-3">
+        <Opt label="Módulos KTX — desarrollos propios para Guatemala"
+          selected={form.odooSubtype === 'modulos-ktx'} accent="sky"
+          onClick={() => pick(() => sOdooSubtype('modulos-ktx'))} />
+        <Opt label="Acceso a nuestro sistema SaaS"
+          selected={form.odooSubtype === 'acceso'} accent="emerald"
+          onClick={() => pick(() => sOdooSubtype('acceso'))} />
+        <Opt label="Implementación"
+          selected={form.odooSubtype === 'implementacion'}
+          onClick={() => pick(() => sOdooSubtype('implementacion'))} />
+      </div>
+    </>
+  );
+
+  /* ── Módulos KTX display ── */
+  const stepOdooModulos = () => (
+    <>
+      <Q question="Módulos KTX para Odoo 19" hint="Desarrollos propios disponibles en el marketplace oficial de Odoo." />
+      <div className="space-y-2">
+        {KTX_MODULES.map((mod, i) => (
+          <a key={i} href={mod.url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-white/3 border border-white/8 hover:bg-sky-500/10 hover:border-sky-500/30 transition-all group">
+            <span className="text-sm text-gray-200 group-hover:text-white transition-colors font-medium">{mod.name}</span>
+            <ExternalLinkIcon size={13} className="text-gray-600 group-hover:text-sky-400 flex-shrink-0 transition-colors" />
+          </a>
+        ))}
+      </div>
+      <p className="text-xs text-gray-600 mt-4 text-center">Haz clic para comprar y descargar en el marketplace oficial de Odoo.</p>
+    </>
+  );
+
+  /* ── Implementación choice ── */
+  const stepImplementacion = () => (
+    <>
+      <Q question="¿Cómo quieres implementar Odoo?" />
+      <div className="space-y-3">
+        <Opt label="Acceder a nuestro sistema SaaS" accent="emerald"
+          selected={form.implementacionChoice === 'acceso'}
+          onClick={() => pick(() => sImplementacionChoice('acceso'))} />
+        <Opt label="Contactar a un partner oficial de Odoo"
+          selected={form.implementacionChoice === 'partner'}
+          onClick={() => pick(() => sImplementacionChoice('partner'))} />
+      </div>
+      <div className="mt-4 px-4 py-3 rounded-xl bg-amber-500/8 border border-amber-500/15">
+        <p className="text-xs text-amber-400/80 leading-relaxed">
+          KONTAXES CONSULTORES, S.A. no es un partner oficial de Odoo.
+          Si requieres implementación propia, te referiremos a nuestro partner certificado.
+        </p>
+      </div>
+    </>
+  );
+
+  /* ── Acceso plan ── */
+  const stepAccesoPlan = () => (
+    <>
+      <Q question="¿Qué plan necesitas?" hint="Acceso a Odoo V19 Enterprise en nuestra base de datos. Q150 por cada usuario adicional." />
+      <div className="space-y-3">
+        {(Object.entries(ACCESO_PLANS) as [AccesoPlan, { label: string; total: number }][]).map(([v, plan]) => (
+          <Opt key={v} label={`${plan.label} — Q${plan.total.toLocaleString('es-GT')}/mes`}
+            selected={form.accesoPlan === v} accent="emerald"
+            onClick={() => pick(() => sAccesoPlan(v))} />
+        ))}
+      </div>
+    </>
+  );
+
+  /* ── Acceso usuarios adicionales ── */
+  const stepAccesoUsuarios = () => {
+    const count = Math.max(0, form.accesoUsuariosAdicionales === -1 ? 0 : form.accesoUsuariosAdicionales);
+    const changeCount = (delta: number) => {
+      const next = Math.max(0, count + delta);
+      setForm(p => ({ ...p, accesoUsuariosAdicionales: next }));
+    };
     return (
       <>
-        <Q icon="📋" question="¿Cuál es tu régimen fiscal?" hint="¿Bajo qué régimen tributas actualmente?" />
-        <div className="space-y-3">
-          {(['pequeño', 'opcional', 'general'] as Regimen[]).map(v => (
-            <Opt key={v} label={REGIMEN_LABEL[v]}
-              selected={form.regimen === v}
-              onClick={() => pick(() => sRegimen(v))} />
-          ))}
+        <Q question="¿Usuarios adicionales?" hint={`Q${PRICE_USUARIO_ADICIONAL}/usuario adicional al mes.`} />
+        <div className="flex items-center justify-center gap-6 py-6">
+          <button onClick={() => changeCount(-1)} disabled={count === 0}
+            className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 hover:bg-white/10 disabled:opacity-30 transition-all">
+            <MinusIcon size={18} />
+          </button>
+          <div className="text-center">
+            <p className="text-5xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{count}</p>
+            <p className="text-xs text-gray-500 mt-1">usuarios adicionales</p>
+          </div>
+          <button onClick={() => changeCount(1)}
+            className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 hover:bg-white/10 transition-all">
+            <PlusIcon size={18} />
+          </button>
         </div>
+        {count > 0 && (
+          <p className="text-center text-sm text-emerald-400 mb-2">
+            +Q{(count * PRICE_USUARIO_ADICIONAL).toLocaleString('es-GT')}/mes
+          </p>
+        )}
+        <button onClick={() => { setForm(p => ({ ...p, accesoUsuariosAdicionales: count })); setTimeout(advance, 100); }}
+          className="w-full mt-2 py-3.5 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white text-sm flex items-center justify-center gap-2">
+          Continuar <ArrowRightIcon size={14} />
+        </button>
       </>
     );
   };
 
+  /* ── Contable shared steps ── */
+  const stepContribuyente = () => (
+    <>
+      <Q question="¿Quién es el contribuyente?" hint="¿La responsabilidad legal recae en una persona natural o jurídica?" />
+      <div className="space-y-3">
+        <Opt label="Persona / Comerciante Individual"
+          selected={form.contribuyente === 'individual'}
+          onClick={() => pick(() => sContribuyente('individual'))} />
+        <Opt label="Sociedad / Empresa (Persona Jurídica)"
+          selected={form.contribuyente === 'sociedad'}
+          onClick={() => pick(() => sContribuyente('sociedad'))} />
+      </div>
+    </>
+  );
+
+  const stepRegimen = () => (
+    <>
+      <Q question="¿Cuál es tu régimen fiscal?" hint="¿Bajo qué régimen tributas actualmente?" />
+      <div className="space-y-3">
+        {(['pequeño', 'opcional', 'general'] as Regimen[]).map(v => (
+          <Opt key={v} label={REGIMEN_LABEL[v]}
+            selected={form.regimen === v}
+            onClick={() => pick(() => sRegimen(v))} />
+        ))}
+      </div>
+    </>
+  );
+
   const stepActivos = () => (
     <>
-      <Q icon="💰" question="¿Tus activos superan Q25,000?" hint="Determina si la contabilidad completa es legalmente obligatoria para tu sociedad." />
+      <Q question="¿Tus activos superan Q25,000?" hint="Determina si la contabilidad completa es legalmente obligatoria para tu sociedad." />
       <div className="space-y-3">
-        <Opt label="Sí, superan Q25,000" sub="Contabilidad completa obligatoria por ley"
-          selected={form.activosMayor25k === true} accent="amber"
+        <Opt label="Sí, superan Q25,000" selected={form.activosMayor25k === true} accent="amber"
           onClick={() => pick(() => sActivos(true))} />
-        <Opt label="No, son Q25,000 o menos" sub="Contabilidad completa opcional"
-          selected={form.activosMayor25k === false} accent="sky"
+        <Opt label="No, son Q25,000 o menos" selected={form.activosMayor25k === false} accent="sky"
           onClick={() => pick(() => sActivos(false))} />
       </div>
     </>
@@ -326,13 +566,11 @@ export function QuotationCalculator() {
 
   const stepAlcance = () => (
     <>
-      <Q icon="🧭" question="¿A qué se dedica tu negocio?" hint="Define el alcance principal de tus actividades." />
+      <Q question="¿A qué se dedica tu negocio?" hint="Define el alcance principal de tus actividades." />
       <div className="space-y-3">
-        <Opt label="Servicios" sub="Técnicos, profesionales, consultoría, etc."
-          selected={form.alcance === 'servicios'}
+        <Opt label="Servicios" selected={form.alcance === 'servicios'}
           onClick={() => pick(() => sAlcance('servicios'))} />
-        <Opt label="Compra-venta de bienes" sub="Sistema de inventarios y costo de ventas"
-          selected={form.alcance === 'compra-venta'} accent="emerald"
+        <Opt label="Compra-venta de bienes" selected={form.alcance === 'compra-venta'} accent="emerald"
           onClick={() => pick(() => sAlcance('compra-venta'))} />
       </div>
     </>
@@ -340,13 +578,11 @@ export function QuotationCalculator() {
 
   const stepContabilidad = () => (
     <>
-      <Q icon="📒" question="¿Deseas contabilidad completa?" hint="No es fiscalmente obligatorio, pero es recomendado financieramente para una gestión sólida." />
+      <Q question="¿Deseas contabilidad completa?" hint="No es fiscalmente obligatorio, pero es recomendado financieramente para una gestión sólida." />
       <div className="space-y-3">
-        <Opt label="Sí, contabilidad completa" sub="Catálogo de cuentas, asientos contables y estados financieros"
-          selected={form.contabilidadCompleta === true}
+        <Opt label="Sí, contabilidad completa" selected={form.contabilidadCompleta === true}
           onClick={() => pick(() => sContabilidad(true))} />
-        <Opt label="No por ahora" sub="Solo contabilidad básica sin registro completo"
-          selected={form.contabilidadCompleta === false} accent="sky"
+        <Opt label="No por ahora" selected={form.contabilidadCompleta === false} accent="sky"
           onClick={() => pick(() => sContabilidad(false))} />
       </div>
     </>
@@ -357,11 +593,9 @@ export function QuotationCalculator() {
       <Q question="¿Requiere elaboración de planilla + IGSS?"
         hint="Control contable y generación de reportes SAT-IGSS. No incluye realizar los desembolsos." />
       <div className="space-y-3">
-        <Opt label="Sí, incluir planilla e IGSS"
-          selected={form.planillaIGSS === true} accent="emerald"
+        <Opt label="Sí, incluir planilla e IGSS" selected={form.planillaIGSS === true} accent="emerald"
           onClick={() => pick(() => sPlanillaIGSS(true))} />
-        <Opt label="No por ahora"
-          selected={form.planillaIGSS === false}
+        <Opt label="No por ahora" selected={form.planillaIGSS === false}
           onClick={() => pick(() => sPlanillaIGSS(false))} />
       </div>
     </>
@@ -369,13 +603,12 @@ export function QuotationCalculator() {
 
   const stepImpuestos = () => {
     const reg = form.regimen as Regimen;
-    const n = FORMS[reg];
-    const cost = n * 100;
+    const n   = FORMS[reg];
     const obligatoria = isContabilidadObligatoria(form);
     const hintMap: Record<Regimen, string> = {
       pequeño:  'IVA 5% mensual',
       opcional: 'IVA mensual · ISR mensual · ISR retenciones · ISR anual',
-      general:  'IVA mensual · IVA trimestral · ISO trimestral · ISR anual · retenciones',
+      general:  'IVA mensual · ISR trimestral · ISO trimestral · ISR anual · retenciones',
     };
     return (
       <>
@@ -387,16 +620,20 @@ export function QuotationCalculator() {
             </p>
           </div>
         )}
-        <Q icon="🧾" question="¿Presentamos tus impuestos?" hint={reg ? hintMap[reg] : ''} />
+        <Q question="¿Presentamos tus impuestos?" hint={reg ? hintMap[reg] : ''} />
         <div className="space-y-3">
           <Opt label="Sí, KONTAXES presenta mis impuestos"
-            sub={`KONTAXES presenta ${n === 1 ? 'tu formulario' : 'tus formularios'} ante la SAT`}
             selected={form.presentacionImpuestos === true} accent="emerald"
             onClick={() => pick(() => sImpuestos(true))} />
-          <Opt label="No, lo gestiono yo" sub="Presentas tus formularios directamente"
+          <Opt label="No, lo gestiono yo"
             selected={form.presentacionImpuestos === false}
             onClick={() => pick(() => sImpuestos(false))} />
         </div>
+        {form.serviceType === 'outsourcing' && (
+          <p className="text-xs text-gray-500 mt-3">
+            Para outsourcing, la presentación de impuestos añade horas al cálculo mensual.
+          </p>
+        )}
       </>
     );
   };
@@ -404,16 +641,13 @@ export function QuotationCalculator() {
   const stepCertFEL = () => {
     const needsOdoo = form.contabilidadCompleta === true && form.alcance === 'compra-venta';
     const yesFELValue: CertFEL = needsOdoo ? 'odoo' : 'finanz-ia';
-    const yesFELLabel = 'Sí, necesito certificador FEL';
     return (
       <>
         <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
         <div className="space-y-3">
-          <Opt label="No por ahora"
-            selected={form.certFEL === 'ninguno'}
+          <Opt label="No por ahora" selected={form.certFEL === 'ninguno'}
             onClick={() => pick(() => sCertFEL('ninguno'))} />
-          <Opt label={yesFELLabel}
-            selected={form.certFEL === yesFELValue} accent="emerald"
+          <Opt label="Sí, necesito certificador FEL" selected={form.certFEL === yesFELValue} accent="emerald"
             onClick={() => pick(() => sCertFEL(yesFELValue))} />
         </div>
         {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
@@ -430,11 +664,9 @@ export function QuotationCalculator() {
     <>
       <Q question="¿Facturas por WhatsApp?" hint="Emite facturas electrónicas certificadas por la SAT directo desde WhatsApp." />
       <div className="space-y-3">
-        <Opt label="Sí, solicitar facturas por WhatsApp"
-          selected={form.whatsappFEL === true} accent="emerald"
+        <Opt label="Sí, solicitar facturas por WhatsApp" selected={form.whatsappFEL === true} accent="emerald"
           onClick={() => pick(() => sWhatsappFEL(true))} />
-        <Opt label="No por ahora"
-          selected={form.whatsappFEL === false}
+        <Opt label="No por ahora" selected={form.whatsappFEL === false}
           onClick={() => pick(() => sWhatsappFEL(false))} />
       </div>
     </>
@@ -458,21 +690,19 @@ export function QuotationCalculator() {
                 value={form[f.k] || ''}
                 onChange={e => { setContactError(false); sContact(f.k, e.target.value); }}
                 className={`px-4 py-3 rounded-xl bg-white/5 border text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:bg-white/8 transition-all ${
-                  empty
-                    ? 'border-red-500/60 focus:border-red-400'
-                    : 'border-white/10 focus:border-purple-500/50'
+                  empty ? 'border-red-500/60 focus:border-red-400' : 'border-white/10 focus:border-purple-500/50'
                 }`} />
             );
           })}
         </div>
         {contactError && (
-          <p className="text-xs text-red-400 mb-4 flex items-center gap-1.5">
+          <p className="text-xs text-red-400 mb-3 flex items-center gap-1.5">
             <AlertCircleIcon size={12} className="flex-shrink-0" />
             Por favor completa todos los campos para generar tu cotización.
           </p>
         )}
         <button onClick={handleCalc}
-          className="w-full py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base flex items-center justify-center gap-2 mt-3">
+          className="w-full mt-2 py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base flex items-center justify-center gap-2">
           <CalculatorIcon size={20} /> Ver mi cotización →
         </button>
       </>
@@ -483,6 +713,12 @@ export function QuotationCalculator() {
     switch (stepId) {
       case 'service-type':    return stepServiceType();
       case 'contact-service': return stepContactService();
+      case 'outsourcing-role': return stepOutsourcingRole();
+      case 'odoo-subtype':    return stepOdooSubtype();
+      case 'odoo-modulos':    return stepOdooModulos();
+      case 'implementacion':  return stepImplementacion();
+      case 'acceso-plan':     return stepAccesoPlan();
+      case 'acceso-usuarios': return stepAccesoUsuarios();
       case 'contribuyente':   return stepContribuyente();
       case 'regimen':         return stepRegimen();
       case 'activos':         return stepActivos();
@@ -504,7 +740,9 @@ export function QuotationCalculator() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-1">Tu Cotización Estimada</p>
-            <p className="text-gray-400 text-sm">Servicios contables mensuales · IVA incluido</p>
+            <p className="text-gray-400 text-sm">
+              {form.serviceType === 'odoo' ? 'Acceso SaaS Odoo V19 Enterprise' : form.serviceType === 'outsourcing' ? 'Outsourcing mensual · incluye supervisión' : 'Servicios contables mensuales · IVA incluido'}
+            </p>
             {form.nombre && (
               <p className="text-white font-semibold text-sm mt-2">
                 {form.nombre}{form.empresa ? ` — ${form.empresa}` : ''}
@@ -544,7 +782,7 @@ export function QuotationCalculator() {
 
       {result!.notes.length > 0 && (
         <div className="px-8 py-4 border-b border-orange-500/10 bg-orange-500/5">
-          <p className="text-xs font-bold uppercase tracking-wider text-orange-500 mb-2">Costos variables adicionales (no incluidos)</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-orange-500 mb-2">Notas importantes</p>
           {result!.notes.map((n, i) => (
             <div key={i} className="flex gap-2 text-xs text-orange-500/80 leading-relaxed">
               <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" /> {n}
@@ -591,7 +829,6 @@ export function QuotationCalculator() {
       <div className="absolute bottom-20 left-10 w-56 h-56 bg-violet-700/5 rounded-full blur-3xl orb-float-reverse pointer-events-none" />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 relative">
-
         <div className="text-center mb-10 reveal">
           <span className="inline-block text-xs font-bold tracking-widest uppercase text-purple-400 mb-3">
             Precios Personalizados
@@ -606,7 +843,6 @@ export function QuotationCalculator() {
         <div className="reveal bg-white/3 border border-white/8 rounded-3xl overflow-hidden shadow-2xl">
           {result ? renderResult() : (
             <>
-              {/* Top bar */}
               <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/5">
                 <button onClick={retreat} disabled={idx === 0}
                   className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0 ${
@@ -627,12 +863,10 @@ export function QuotationCalculator() {
                 </span>
               </div>
 
-              {/* Animated step */}
               <div key={key} className={back ? 'animate-slide-in-back' : 'animate-slide-in'}>
                 <div className="px-8 pt-8 pb-8">
                   {renderStep()}
 
-                  {/* Continuar (when revisiting a completed step) */}
                   {canContinue && (
                     <button onClick={advance}
                       className="w-full mt-5 py-3 text-sm font-medium text-gray-500 hover:text-gray-200 border border-white/8 hover:border-white/20 rounded-2xl transition-all flex items-center justify-center gap-2">

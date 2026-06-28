@@ -8,6 +8,7 @@ export interface QuotationPDFData {
   warnings: string[];
   date: string;
   formSummary?: string[];
+  pdfVariant?: 'contable' | 'saas' | 'outsourcing';
 }
 
 async function getImageBase64(path: string): Promise<string> {
@@ -69,12 +70,25 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
   const contactSentence = contactParts.length
     ? ` Podemos contactarte ${contactParts.join(' y ')} para continuar compartiendo información.`
     : '';
-  const introPara = data.nombre ? `
+
+  const buildIntroPara = () => {
+    if (!data.nombre) return '';
+    const variant = data.pdfVariant ?? 'contable';
+    let bodyText = '';
+    if (variant === 'saas') {
+      bodyText = `es un gusto presentarte una cotización estimada del costo del derecho de uso y acceso a nuestra base de datos de Odoo V19 Enterprise, para ser el aliado estratégico${empresaPart}, y evitar los grandes costos de implementación.`;
+    } else if (variant === 'outsourcing') {
+      bodyText = `es un gusto presentarte una cotización estimada del costo del servicio de outsourcing contable para ser el aliado estratégico${empresaPart}.`;
+    } else {
+      bodyText = `es un gusto presentarte una cotización estimada del costo de nuestros servicios profesionales para ser el aliado estratégico${empresaPart}.`;
+    }
+    return `
     <div class="intro-para">
-      Estimado(a) <strong>${data.nombre}</strong>, es un gusto presentarte una cotización estimada del
-      costo de nuestros servicios profesionales para ser el aliado estratégico${empresaPart}.
+      Estimado(a) <strong>${data.nombre}</strong>, ${bodyText}
       A continuación te compartimos el detalle de los servicios y los costos correspondientes estimados.${contactSentence}
-    </div>` : '';
+    </div>`;
+  };
+  const introPara = buildIntroPara();
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -238,9 +252,14 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
 
     <div style="page-break-inside:avoid;">
     <div class="disclaimer">
+      ${(data.pdfVariant === 'saas') ? `
+      <strong>IMPORTANTE:</strong> Esta es una cotización estimada de un servicio SaaS, NO un documento formal.
+      El servicio consiste en el derecho de uso y acceso a nuestra base de datos Odoo V19 Enterprise — no es una implementación propia del cliente.
+      Incluye acceso a nuestros módulos preinstalados. Módulos adicionales se desarrollan con costo separado.
+      Los precios están en Quetzales (GTQ).` : `
       <strong>IMPORTANTE:</strong> Esta es una cotización estimada, NO un documento formal. Para formalizar el servicio se
       enviará la propuesta oficial, cotización formal y contrato de servicios profesionales.
-      Los precios están en Quetzales (GTQ) e incluyen IVA.
+      Los precios están en Quetzales (GTQ) e incluyen IVA.`}
     </div>
 
     <div class="signature-section">
