@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   CalculatorIcon, CheckCircleIcon, AlertCircleIcon,
-  DownloadIcon, MessageCircleIcon, MailIcon,
+  DownloadIcon, MessageCircleIcon,
   ChevronLeftIcon, ArrowRightIcon, PhoneIcon, ExternalLinkIcon,
   PlusIcon, MinusIcon,
 } from 'lucide-react';
@@ -11,13 +11,14 @@ import {
   OdooSubtype, OutsourcingRole, AccesoPlan,
   AdminSubService, ConsultoriaSubService,
   calculateQuotation, calculateOutsourcingQuotation, calculateAccesoQuotation,
-  buildFormSummary, buildWAText, buildEmailBody,
+  buildFormSummary, buildWAText,
   isContabilidadObligatoria, needsActivosQuestion,
   REGIMEN_LABEL, SERVICE_LABEL, FORMS,
   OUTSOURCING_ROLE_LABEL, ACCESO_PLANS, PRICE_USUARIO_ADICIONAL, KTX_MODULES,
   ADMIN_SUB_LABEL, CONSULTORIA_SUB_LABEL,
 } from '../utils/quotationLogic';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
+import { sendQuotationEmail } from '../utils/emailService';
 
 const WA_NUMBER  = '50235174713';
 const LEXUM_WA   = '50232406009';
@@ -269,31 +270,46 @@ export function QuotationCalculator() {
     return 'contable';
   };
 
+  const buildPDFParams = () => ({
+    nombre: form.nombre, empresa: form.empresa,
+    whatsapp: form.whatsapp, correo: form.correo,
+    breakdown: result!.breakdown, total: result!.total,
+    warnings: result!.notes,
+    date: new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' }),
+    pdfVariant: getPdfVariant(),
+  });
+
   const handlePDF = async () => {
     if (!result) return;
     setPdfLoading(true);
     try {
-      await generateQuotationPDF({
+      const { blob, filename, quoteNumber } = await generateQuotationPDF(buildPDFParams());
+      // Fire-and-forget email in background
+      sendQuotationEmail({
         nombre: form.nombre, empresa: form.empresa,
         whatsapp: form.whatsapp, correo: form.correo,
-        breakdown: result.breakdown, total: result.total,
-        warnings: result.notes,
-        date: new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' }),
-        pdfVariant: getPdfVariant(),
+        total: result.total, breakdown: result.breakdown,
+        quoteNumber, date: buildPDFParams().date,
+        blob, filename,
       });
     } finally { setPdfLoading(false); }
   };
 
   const handleWA = async () => {
     if (!result) return;
-    await handlePDF();
-    setTimeout(() => window.open(`https://wa.me/${WA_NUMBER}?text=${buildWAText(form, result!)}`, '_blank'), 400);
-  };
-
-  const handleEmail = async () => {
-    if (!result) return;
-    await handlePDF();
-    setTimeout(() => window.open(`mailto:info@kontaxes.com?subject=${encodeURIComponent('Cotización KONTAXES')}&body=${buildEmailBody(form, result)}`, '_blank'), 400);
+    setPdfLoading(true);
+    try {
+      const { blob, filename, quoteNumber } = await generateQuotationPDF(buildPDFParams());
+      sendQuotationEmail({
+        nombre: form.nombre, empresa: form.empresa,
+        whatsapp: form.whatsapp, correo: form.correo,
+        total: result.total, breakdown: result.breakdown,
+        quoteNumber, date: buildPDFParams().date,
+        blob, filename,
+      });
+    } finally { setPdfLoading(false); }
+    // Open WhatsApp after a short delay so the download dialog doesn't block
+    setTimeout(() => window.open(`https://wa.me/${WA_NUMBER}?text=${buildWAText(form, result!)}`, '_blank'), 600);
   };
 
   const handleReset = () => { setForm(EMPTY); setIdx(0); setKey(k => k + 1); setBack(false); setResult(null); setContactError(false); };
@@ -380,12 +396,8 @@ export function QuotationCalculator() {
           </div>
           <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Hola KONTAXES, necesito que me refieran a un partner oficial de Odoo para una implementación.')}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full mb-2">
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full">
             <PhoneIcon size={15} /> Solicitar referido por WhatsApp
-          </a>
-          <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent('Implementación Odoo — referido a partner')}`}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm w-full">
-            <MailIcon size={15} /> Enviar correo
           </a>
         </div>
       );
@@ -411,12 +423,8 @@ export function QuotationCalculator() {
         <p className="text-gray-500 text-xs mb-5">Requiere evaluación personalizada. Contáctanos para una propuesta a la medida.</p>
         <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${subtitle || title}`)}`}
           target="_blank" rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full mb-2">
+          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full">
           <PhoneIcon size={15} /> Contactar por WhatsApp
-        </a>
-        <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${subtitle || title}`)}`}
-          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm w-full">
-          <MailIcon size={15} /> Enviar correo
         </a>
       </div>
     );
@@ -846,19 +854,20 @@ export function QuotationCalculator() {
         </p>
       </div>
 
-      <div className="px-8 py-6 grid sm:grid-cols-3 gap-3">
+      <div className="px-8 py-6 grid grid-cols-2 gap-3">
         <button onClick={handlePDF} disabled={pdfLoading}
-          className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-2xl hover:from-purple-500 hover:to-violet-500 transition-all hover:-translate-y-0.5 shadow-lg text-sm">
+          className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-2xl hover:from-purple-500 hover:to-violet-500 transition-all hover:-translate-y-0.5 shadow-lg text-sm disabled:opacity-60">
           <DownloadIcon size={15} /> {pdfLoading ? 'Generando…' : 'Descargar PDF'}
         </button>
-        <button onClick={handleWA}
-          className="flex items-center justify-center gap-2 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm">
-          <MessageCircleIcon size={15} /> WhatsApp
+        <button onClick={handleWA} disabled={pdfLoading}
+          className="flex items-center justify-center gap-2 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm disabled:opacity-60">
+          <MessageCircleIcon size={15} /> {pdfLoading ? 'Generando…' : 'WhatsApp'}
         </button>
-        <button onClick={handleEmail}
-          className="flex items-center justify-center gap-2 py-3 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm">
-          <MailIcon size={15} /> Correo
-        </button>
+      </div>
+      <div className="px-8 pb-2">
+        <p className="text-xs text-gray-600 text-center">
+          Al hacer clic en WhatsApp, el PDF se descarga automáticamente — adjúntalo en la conversación.
+        </p>
       </div>
 
       <div className="px-8 pb-6 text-center">
