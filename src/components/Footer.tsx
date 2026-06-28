@@ -37,9 +37,9 @@ export function Footer() {
                 className="flex items-center gap-2 text-gray-400 hover:text-purple-400 transition-colors text-sm">
                 <MailIcon size={15} className="flex-shrink-0" /> info@kontaxes.com
               </a>
-              <a href="https://wa.me/50236387717" target="_blank" rel="noopener noreferrer"
+              <a href="https://wa.me/50235174713" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 text-gray-400 hover:text-purple-400 transition-colors text-sm">
-                <PhoneIcon size={15} className="flex-shrink-0" /> +502 3638-7717
+                <PhoneIcon size={15} className="flex-shrink-0" /> +502 3517-4713
               </a>
               <div className="flex items-center gap-2 text-gray-400 text-sm">
                 <MapPinIcon size={15} className="flex-shrink-0" /> Guatemala

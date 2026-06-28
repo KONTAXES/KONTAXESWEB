@@ -9,15 +9,17 @@ import {
   QuotationData, QuotationResult,
   ServiceType, Contribuyente, Regimen, Alcance, CertFEL,
   OdooSubtype, OutsourcingRole, AccesoPlan,
+  AdminSubService, ConsultoriaSubService,
   calculateQuotation, calculateOutsourcingQuotation, calculateAccesoQuotation,
   buildFormSummary, buildWAText, buildEmailBody,
   isContabilidadObligatoria, needsActivosQuestion,
   REGIMEN_LABEL, SERVICE_LABEL, FORMS,
   OUTSOURCING_ROLE_LABEL, ACCESO_PLANS, PRICE_USUARIO_ADICIONAL, KTX_MODULES,
+  ADMIN_SUB_LABEL, CONSULTORIA_SUB_LABEL,
 } from '../utils/quotationLogic';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 
-const WA_NUMBER  = '50236387717';
+const WA_NUMBER  = '50235174713';
 const LEXUM_WA   = '50232406009';
 
 /* ── Step IDs ───────────────────────────────────────────────────── */
@@ -27,6 +29,7 @@ type StepId =
   | 'alcance' | 'contabilidad' | 'planilla' | 'impuestos'
   | 'cert-fel' | 'wa-fel'
   | 'outsourcing-role'
+  | 'admin-sub' | 'consultoria-sub'
   | 'odoo-subtype' | 'odoo-modulos'
   | 'implementacion'
   | 'acceso-plan' | 'acceso-usuarios'
@@ -37,7 +40,21 @@ function getActiveSteps(form: QuotationData): StepId[] {
   if (!form.serviceType) return s;
 
   /* ── Contact-only services ── */
-  if (['auditoria', 'admin-financiero', 'consultoria-fiscal', 'legales'].includes(form.serviceType)) {
+  if (['auditoria', 'legales'].includes(form.serviceType)) {
+    s.push('contact-service');
+    return s;
+  }
+
+  if (form.serviceType === 'admin-financiero') {
+    s.push('admin-sub');
+    if (!form.adminSubService) return s;
+    s.push('contact-service');
+    return s;
+  }
+
+  if (form.serviceType === 'consultoria-fiscal') {
+    s.push('consultoria-sub');
+    if (!form.consultoriaSubService) return s;
     s.push('contact-service');
     return s;
   }
@@ -109,7 +126,8 @@ function getActiveSteps(form: QuotationData): StepId[] {
 
 function getTotalSteps(form: QuotationData): number {
   if (!form.serviceType) return 2;
-  if (['auditoria', 'admin-financiero', 'consultoria-fiscal', 'legales'].includes(form.serviceType)) return 2;
+  if (['auditoria', 'legales'].includes(form.serviceType)) return 2;
+  if (form.serviceType === 'admin-financiero' || form.serviceType === 'consultoria-fiscal') return 3;
   if (form.serviceType === 'odoo') {
     if (form.odooSubtype === 'modulos-ktx') return 3;
     return 5; // subtype + plan + usuarios + contact (+implementacion optional)
@@ -179,6 +197,7 @@ const EMPTY: QuotationData = {
   alcance: '', contabilidadCompleta: null, planillaIGSS: null,
   presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
   outsourcingRole: '',
+  adminSubService: '', consultoriaSubService: '',
   odooSubtype: '', implementacionChoice: '', accesoPlan: '', accesoUsuariosAdicionales: -1,
   nombre: '', empresa: '', whatsapp: '', correo: '',
 };
@@ -221,6 +240,8 @@ export function QuotationCalculator() {
   const sCertFEL       = (v: CertFEL)  => setForm(p => ({ ...p, certFEL: v, whatsappFEL: null }));
   const sWhatsappFEL   = (v: boolean)  => setForm(p => ({ ...p, whatsappFEL: v }));
   const sOutsourcingRole = (v: OutsourcingRole) => setForm(p => ({ ...p, outsourcingRole: v }));
+  const sAdminSubService = (v: AdminSubService) => setForm(p => ({ ...p, adminSubService: v }));
+  const sConsultoriaSubService = (v: ConsultoriaSubService) => setForm(p => ({ ...p, consultoriaSubService: v }));
   const sOdooSubtype   = (v: OdooSubtype) => setForm(p => ({ ...p, odooSubtype: v, implementacionChoice: '', accesoPlan: '', accesoUsuariosAdicionales: -1 }));
   const sImplementacionChoice = (v: 'acceso' | 'partner') => setForm(p => ({ ...p, implementacionChoice: v, accesoPlan: '', accesoUsuariosAdicionales: -1 }));
   const sAccesoPlan    = (v: AccesoPlan) => setForm(p => ({ ...p, accesoPlan: v, accesoUsuariosAdicionales: 0 }));
@@ -290,6 +311,8 @@ export function QuotationCalculator() {
       case 'cert-fel':        return form.certFEL;
       case 'wa-fel':          return form.whatsappFEL;
       case 'outsourcing-role': return form.outsourcingRole;
+      case 'admin-sub':        return form.adminSubService;
+      case 'consultoria-sub':  return form.consultoriaSubService;
       case 'odoo-subtype':    return form.odooSubtype;
       case 'implementacion':  return form.implementacionChoice;
       case 'acceso-plan':     return form.accesoPlan;
@@ -368,34 +391,30 @@ export function QuotationCalculator() {
       );
     }
 
-    /* Descripciones por servicio */
-    const info: Record<string, [string, string[]]> = {
-      auditoria:           ['Auditoría', ['Revisión y certificación de estados financieros', 'Auditoría interna y externa', 'Dictamen de cumplimiento fiscal']],
-      'admin-financiero':  ['Servicios Administrativos-Financieros', ['Tesorería — gestión de flujo de caja y pagos', 'Cuentas por Cobrar — seguimiento de clientes', 'Cuentas por Pagar — gestión de proveedores', 'Análisis Financiero — indicadores y reportes ejecutivos']],
-      'consultoria-fiscal':['Consultoría y Asesoría Fiscal', ['Planificación Fiscal Estratégica', '¿Qué régimen fiscal me conviene?', 'Resolución de dudas fiscales puntuales', 'KONSULTAXES IA — asistente fiscal inteligente']],
-    };
-    const [title, items] = info[svc] ?? [SERVICE_LABEL[svc], []];
+    /* Determine title based on service + sub-selection */
+    let title = SERVICE_LABEL[svc];
+    let subtitle = '';
+    if (svc === 'admin-financiero' && form.adminSubService) {
+      subtitle = ADMIN_SUB_LABEL[form.adminSubService as AdminSubService];
+    } else if (svc === 'consultoria-fiscal' && form.consultoriaSubService) {
+      subtitle = CONSULTORIA_SUB_LABEL[form.consultoriaSubService as ConsultoriaSubService];
+    } else if (svc === 'auditoria') {
+      title = 'Auditoría';
+    }
 
     return (
       <div>
-        <p className="text-gray-300 text-sm font-semibold mb-3">{title}</p>
-        {items.length > 0 && (
-          <ul className="space-y-1 mb-6">
-            {items.map((it, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
-                <CheckCircleIcon size={12} className="text-purple-400 flex-shrink-0 mt-0.5" />
-                {it}
-              </li>
-            ))}
-          </ul>
+        <p className="text-gray-300 text-sm font-semibold mb-1">{title}</p>
+        {subtitle && (
+          <p className="text-purple-300 text-base font-bold mb-4">{subtitle}</p>
         )}
-        <p className="text-gray-500 text-xs mb-4">Requiere evaluación personalizada. Contáctanos para una propuesta a la medida.</p>
-        <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${title}`)}`}
+        <p className="text-gray-500 text-xs mb-5">Requiere evaluación personalizada. Contáctanos para una propuesta a la medida.</p>
+        <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${subtitle || title}`)}`}
           target="_blank" rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full mb-2">
           <PhoneIcon size={15} /> Contactar por WhatsApp
         </a>
-        <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${title}`)}`}
+        <a href={`mailto:info@kontaxes.com?subject=${encodeURIComponent(`Cotización: ${subtitle || title}`)}`}
           className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-500/15 border border-purple-500/30 text-purple-400 font-bold rounded-2xl hover:bg-purple-500/25 transition-all text-sm w-full">
           <MailIcon size={15} /> Enviar correo
         </a>
@@ -479,7 +498,7 @@ export function QuotationCalculator() {
       <Q question="¿Qué plan necesitas?" hint="Acceso a Odoo V19 Enterprise en nuestra base de datos. Q150 por cada usuario adicional." />
       <div className="space-y-3">
         {(Object.entries(ACCESO_PLANS) as [AccesoPlan, { label: string; total: number }][]).map(([v, plan]) => (
-          <Opt key={v} label={`${plan.label} — Q${plan.total.toLocaleString('es-GT')}/mes`}
+          <Opt key={v} label={plan.label}
             selected={form.accesoPlan === v} accent="emerald"
             onClick={() => pick(() => sAccesoPlan(v))} />
         ))}
@@ -523,6 +542,34 @@ export function QuotationCalculator() {
       </>
     );
   };
+
+  /* ── Admin Financiero sub-service ── */
+  const stepAdminSub = () => (
+    <>
+      <Q question="¿Qué servicio administrativo necesitas?" hint="Selecciona el área específica en la que necesitas apoyo." />
+      <div className="space-y-2">
+        {(Object.entries(ADMIN_SUB_LABEL) as [AdminSubService, string][]).map(([v, label]) => (
+          <Opt key={v} label={label}
+            selected={form.adminSubService === v}
+            onClick={() => pick(() => sAdminSubService(v))} />
+        ))}
+      </div>
+    </>
+  );
+
+  /* ── Consultoría Fiscal sub-service ── */
+  const stepConsultoriaSub = () => (
+    <>
+      <Q question="¿Qué tipo de consultoría necesitas?" hint="Selecciona el tema fiscal sobre el que necesitas asesoría." />
+      <div className="space-y-2">
+        {(Object.entries(CONSULTORIA_SUB_LABEL) as [ConsultoriaSubService, string][]).map(([v, label]) => (
+          <Opt key={v} label={label}
+            selected={form.consultoriaSubService === v}
+            onClick={() => pick(() => sConsultoriaSubService(v))} />
+        ))}
+      </div>
+    </>
+  );
 
   /* ── Contable shared steps ── */
   const stepContribuyente = () => (
@@ -714,6 +761,8 @@ export function QuotationCalculator() {
       case 'service-type':    return stepServiceType();
       case 'contact-service': return stepContactService();
       case 'outsourcing-role': return stepOutsourcingRole();
+      case 'admin-sub':        return stepAdminSub();
+      case 'consultoria-sub':  return stepConsultoriaSub();
       case 'odoo-subtype':    return stepOdooSubtype();
       case 'odoo-modulos':    return stepOdooModulos();
       case 'implementacion':  return stepImplementacion();

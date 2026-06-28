@@ -45,7 +45,7 @@ export function ComingSoon() {
         <div className="reveal text-center">
           <div className="inline-block p-8 rounded-2xl bg-white/8 backdrop-blur-sm border border-white/15">
             <p className="text-white text-lg mb-5">¿Interesado en alguno de estos servicios?</p>
-            <a href="https://wa.me/50236387717" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/50235174713" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-white text-purple-900 font-bold rounded-xl hover:bg-purple-50 transition-all hover:-translate-y-0.5 shadow-xl">
               💬 Contáctanos por WhatsApp
             </a>
