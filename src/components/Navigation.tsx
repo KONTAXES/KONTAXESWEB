@@ -23,11 +23,10 @@ export function Navigation({ isDark, toggleTheme }: NavigationProps) {
 
   const menuItems = [
     { label: 'Servicios', id: 'servicios' },
-    { label: 'Herramientas', id: 'herramientas' },
     { label: 'Cotizador', id: 'cotizador' },
     { label: 'Equipo', id: 'equipo' },
     { label: 'Clientes', id: 'clientes' },
-    { label: 'Próximamente', id: 'proximamente' },
+    { label: 'Alianzas', id: 'alianzas' },
   ];
 
   return (

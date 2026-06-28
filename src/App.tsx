@@ -6,9 +6,9 @@ import { Services } from './components/Services';
 import { QuotationCalculator } from './components/QuotationCalculator';
 import { Team } from './components/Team';
 import { Clients } from './components/Clients';
-import { ComingSoon } from './components/ComingSoon';
+import { Alianzas } from './components/Alianzas';
 import { Footer } from './components/Footer';
-import { TechStack } from './components/TechStack';
+import { GlobalBackground } from './components/GlobalBackground';
 
 export function App() {
   const { isDark, toggleTheme } = useTheme();
@@ -29,15 +29,17 @@ export function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-gray-950 text-gray-100' : 'bg-slate-50 text-slate-900'}`}>
-      <Navigation isDark={isDark} toggleTheme={toggleTheme} />
-      <Hero />
-      <Services />
-      <TechStack />
-      <QuotationCalculator />
-      <Team />
-      <Clients />
-      <ComingSoon />
-      <Footer />
+      <GlobalBackground />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Navigation isDark={isDark} toggleTheme={toggleTheme} />
+        <Hero />
+        <Services />
+        <QuotationCalculator />
+        <Team />
+        <Clients />
+        <Alianzas />
+        <Footer />
+      </div>
     </div>
   );
 }

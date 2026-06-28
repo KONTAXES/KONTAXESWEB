@@ -14,7 +14,7 @@ export interface QuotationData {
   serviceType: ServiceType | '';
   contribuyente: Contribuyente | '';
   regimen: Regimen | '';
-  activosMayor25k: boolean | null;
+  activosMayor25k: boolean | null;      // solo para sociedad + pequeño
   alcance: Alcance | '';
   contabilidadCompleta: boolean | null;
   presentacionImpuestos: boolean | null;
@@ -38,16 +38,19 @@ export interface QuotationResult {
   notes: string[];
 }
 
+// ── Precio base por contribuyente × régimen (IVA incluido)
+// NO incluye presentación de impuestos (add-on separado)
 const BASE_PRICES: Record<Contribuyente, Record<Regimen, number>> = {
   individual: { pequeño: 250, opcional: 450, general: 550 },
   sociedad:   { pequeño: 750, opcional: 950, general: 1050 },
 };
 
+// Número de formularios fiscales que presenta cada régimen
 export const FORMS: Record<Regimen, number> = { pequeño: 1, opcional: 2, general: 4 };
 
 export const REGIMEN_LABEL: Record<Regimen, string> = {
   pequeño:  'Pequeño Contribuyente (IVA 5%)',
-  opcional: 'Régimen Opcional (IVA 12% + ISR 5–7%)',
+  opcional: 'IVA 12% + ISR Opcional 5–7%',
   general:  'IVA 12% + ISR Sobre Utilidades 25%',
 };
 
@@ -64,21 +67,28 @@ export const SERVICE_LABEL: Record<ServiceType, string> = {
   'implementacion-odoo': 'Implementación Odoo',
 };
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+/** ¿La contabilidad completa es fiscalmente obligatoria para esta combinación? */
 export function isContabilidadObligatoria(
   data: Pick<QuotationData, 'contribuyente' | 'regimen' | 'activosMayor25k'>
 ): boolean {
   if (!data.contribuyente || !data.regimen) return false;
   if (data.contribuyente !== 'sociedad') return false;
   if (data.regimen === 'opcional' || data.regimen === 'general') return true;
+  // sociedad + pequeño: obligatoria solo si activos > Q25,000
   if (data.regimen === 'pequeño' && data.activosMayor25k === true) return true;
   return false;
 }
 
+/** ¿Se debe mostrar la pregunta de activos? */
 export function needsActivosQuestion(
   data: Pick<QuotationData, 'contribuyente' | 'regimen'>
 ): boolean {
   return data.contribuyente === 'sociedad' && data.regimen === 'pequeño';
 }
+
+// ── Cálculo ────────────────────────────────────────────────────────────────
 
 export function calculateQuotation(data: QuotationData): QuotationResult {
   const breakdown: BreakdownItem[] = [];
@@ -90,39 +100,39 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   const contrib = data.contribuyente as Contribuyente;
   const reg     = data.regimen as Regimen;
 
+  // 1. Precio base
   const base = BASE_PRICES[contrib][reg];
-  const obligatoria = isContabilidadObligatoria(data);
-  const tieneContabilidad = obligatoria || data.contabilidadCompleta === true;
-
   breakdown.push({
     item: `Servicio contable — ${CONTRIB_LABEL[contrib]} · ${REGIMEN_LABEL[reg]}`,
     cost: base,
-    note: tieneContabilidad
-      ? 'Incluye estados financieros básicos y libros contables'
-      : 'Incluye libro de compras y ventas',
+    note: 'Incluye registro contable y elaboración de estados financieros básicos',
   });
   total += base;
 
+  // 2. Compra-venta de bienes
   if (data.alcance === 'compra-venta') {
     breakdown.push({
       item: 'Alcance compra-venta — sistema de inventarios y costo de ventas',
       cost: 500,
-      note: 'Control de inventarios, costo de ventas y conciliación de mercancías',
+      note: 'Sistema más robusto con control de inventarios, costo de ventas y conciliación de mercancías',
     });
     total += 500;
   }
 
-  if (tieneContabilidad) {
+  // 3. Contabilidad completa (FinanzIA)
+  const obligatoria = isContabilidadObligatoria(data);
+  if (obligatoria || data.contabilidadCompleta === true) {
     breakdown.push({
-      item: `Contabilidad completa con FinanzIA${obligatoria ? ' — obligatoria por ley' : ''}`,
+      item: `Contabilidad completa${obligatoria ? ' — obligatoria por ley' : ''}`,
       cost: 500,
       note: obligatoria
         ? 'Obligatoria según normativa vigente. Catálogo de cuentas, asientos y estados financieros.'
-        : 'Catálogo de cuentas, asientos contables y estados financieros en FinanzIA.',
+        : 'Catálogo de cuentas, asientos contables y estados financieros completos.',
     });
     total += 500;
   }
 
+  // 4. Presentación de impuestos
   if (data.presentacionImpuestos === true) {
     const numForms = FORMS[reg];
     const costImp  = numForms * 100;
@@ -131,14 +141,15 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
       item: `Presentación de impuestos (${formLabel})`,
       cost: costImp,
       note: reg === 'pequeño'
-        ? 'Declaración mensual de IVA 5% (Formulario 2046)'
+        ? 'Declaración mensual de IVA 5%'
         : reg === 'opcional'
-        ? 'IVA mensual (F2000) + ISR trimestral (F2189)'
-        : 'IVA mensual (F2000) + ISR trimestral (F2189) + ISO (F2189) + Cierre anual',
+        ? 'IVA mensual · ISR mensual · ISR retenciones (proveedores y empleados) · ISR anual · otros aplicables'
+        : 'IVA mensual · IVA trimestral · ISO trimestral · ISR anual · ISR retenciones (proveedores y empleados) · otros aplicables',
     });
     total += costImp;
   }
 
+  // 5. FELSimple — facturas por WhatsApp
   if (data.whatsappFEL === true) {
     breakdown.push({
       item: 'FELSimple — Emisión de facturas por WhatsApp',
@@ -148,6 +159,7 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
     total += 50;
   }
 
+  // 6. Notas sobre FEL (costo variable, no entra al total mensual)
   if (data.certFEL === 'odoo') {
     notes.push(
       'Certificador FEL vía Odoo (CORPOSISTEMAS, S.A.): Q375 de implementación (cobro único, facturado por separado) + Q0.20 por DTE emitido, facturado mensualmente por separado.'
@@ -161,6 +173,8 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   return { total, breakdown, notes };
 }
 
+// ── Helpers para WA / email ────────────────────────────────────────────────
+
 export function buildFormSummary(data: QuotationData): string[] {
   const lines: string[] = [];
   if (data.contribuyente) lines.push(CONTRIB_LABEL[data.contribuyente as Contribuyente]);
@@ -171,7 +185,7 @@ export function buildFormSummary(data: QuotationData): string[] {
   if (data.alcance === 'compra-venta') lines.push('Compra-venta de bienes (inventarios y costos)');
   const obligatoria = isContabilidadObligatoria(data);
   if (obligatoria || data.contabilidadCompleta === true)
-    lines.push('Contabilidad completa con FinanzIA');
+    lines.push('Contabilidad completa');
   if (data.presentacionImpuestos === true)
     lines.push(`Presentación de impuestos (${FORMS[data.regimen as Regimen]} formulario(s))`);
   if (data.certFEL === 'odoo')      lines.push('Certificador FEL vía Odoo (CORPOSISTEMAS, S.A.)');
@@ -198,6 +212,7 @@ export function buildWAText(data: QuotationData, result: QuotationResult): strin
     ...(result.notes.length > 0
       ? ['📌 *Notas:*', ...result.notes.map(n => `ℹ ${n}`), '']
       : []),
+    '📎 Adjunto el PDF con el desglose completo.',
     '¿Podemos agendar una llamada para confirmar los detalles?',
   ].filter(Boolean);
   return encodeURIComponent(parts.join('\n'));

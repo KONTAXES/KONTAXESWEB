@@ -51,11 +51,17 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-bold text-white mb-5 uppercase tracking-wider">Navegación</h3>
             <ul className="space-y-2">
-              {['servicios', 'cotizador', 'herramientas', 'equipo', 'clientes', 'proximamente'].map((id) => (
+              {[
+                { id: 'servicios', label: 'Servicios' },
+                { id: 'cotizador', label: 'Cotizador' },
+                { id: 'equipo', label: 'Equipo' },
+                { id: 'clientes', label: 'Clientes' },
+                { id: 'alianzas', label: 'Alianzas' },
+              ].map(({ id, label }) => (
                 <li key={id}>
                   <button onClick={() => scrollTo(id)}
                     className="text-gray-400 hover:text-purple-400 transition-colors text-sm capitalize">
-                    {id === 'proximamente' ? 'Próximamente' : id.charAt(0).toUpperCase() + id.slice(1)}
+                    {label}
                   </button>
                 </li>
               ))}
