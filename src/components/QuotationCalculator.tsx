@@ -807,11 +807,12 @@ export function QuotationCalculator() {
             )}
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-500 mb-0.5">Total mensual</p>
+            <p className="text-xs text-gray-500 mb-0.5">Desde</p>
             <p className="text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Q {result!.total.toLocaleString('es-GT')}
               <span className="text-gray-500 text-lg font-normal">.00</span>
             </p>
+            <p className="text-xs text-gray-500 mt-0.5">mensual estimado</p>
           </div>
         </div>
       </div>
@@ -828,11 +829,19 @@ export function QuotationCalculator() {
               <p className="text-sm font-bold text-purple-300 flex-shrink-0 tabular-nums">Q {item.cost.toLocaleString('es-GT')}</p>
             </div>
           ))}
-          <div className="flex items-center justify-between pt-2">
-            <p className="text-sm font-bold text-white uppercase tracking-wide">Total</p>
-            <p className="text-2xl font-bold text-white tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Q {result!.total.toLocaleString('es-GT')}
-            </p>
+          <div className="flex items-start justify-between pt-2 gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white uppercase tracking-wide mb-1">Total estimado</p>
+              <p className="text-xs text-gray-500 leading-snug">
+                El monto puede variar según el volumen de operaciones: cantidad de facturas a procesar, movimientos bancarios a conciliar, entre otros.
+              </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-xs text-gray-500 mb-0.5">Desde</p>
+              <p className="text-2xl font-bold text-white tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                Q {result!.total.toLocaleString('es-GT')}
+              </p>
+            </div>
           </div>
         </div>
       </div>
