@@ -143,8 +143,8 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
       note: reg === 'pequeño'
         ? 'Declaración mensual de IVA 5%'
         : reg === 'opcional'
-        ? 'IVA mensual · ISR mensual · ISR retenciones (proveedores y empleados) · ISR anual · otros aplicables'
-        : 'IVA mensual · IVA trimestral · ISO trimestral · ISR anual · ISR retenciones (proveedores y empleados) · otros aplicables',
+        ? 'IVA mensual · ISR anual · ISR retenciones proveedores · ISR retenciones empleados · otros aplicables'
+        : 'IVA mensual · ISR trimestral · ISO trimestral · ISR anual · ISR retenciones proveedores · ISR retenciones empleados · otros aplicables',
     });
     total += costImp;
   }

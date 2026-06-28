@@ -58,6 +58,16 @@ function getActiveSteps(form: QuotationData): StepId[] {
   return s;
 }
 
+function getTotalSteps(form: QuotationData): number {
+  if (!form.serviceType) return 2;
+  if (form.serviceType !== 'contable') return 2;
+  let n = 6; // service-type, contribuyente, regimen, alcance, impuestos, cert-fel, wa-fel, contact
+  const maybeActivos = !form.contribuyente || (form.contribuyente === 'sociedad' && (!form.regimen || form.regimen === 'pequeño'));
+  if (maybeActivos) n++;
+  if (!isContabilidadObligatoria(form)) n++;
+  return n + 2; // cert-fel, wa-fel, contact
+}
+
 /* ── Sub-components ─────────────────────────────────────────────── */
 
 const Opt = ({
@@ -88,7 +98,6 @@ const Opt = ({
     >
       <div className="flex-1 min-w-0">
         <p className={`font-semibold text-sm leading-snug ${selected ? 'text-white' : 'text-gray-200'}`}>{label}</p>
-        {sub && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{sub}</p>}
       </div>
       {selected
         ? <CheckCircleIcon size={18} className={`flex-shrink-0 ${check[accent]}`} />
@@ -127,7 +136,8 @@ export function QuotationCalculator() {
 
   const steps  = getActiveSteps(form);
   const stepId = steps[Math.min(idx, steps.length - 1)];
-  const prog   = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 0;
+  const totalSteps = getTotalSteps(form);
+  const prog = Math.round(((idx + 1) / totalSteps) * 100);
 
   /* navigation */
   const advance = () => { setBack(false); setKey(k => k + 1); setIdx(i => i + 1); };
@@ -381,17 +391,20 @@ export function QuotationCalculator() {
     <>
       <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
       <div className="space-y-3">
-        <Opt label="Sí, necesito certificador FEL" sub="Q0.20 por DTE emitido, facturado mensualmente por separado"
-          selected={form.certFEL === 'finanz-ia'} accent="emerald"
-          onClick={() => pick(() => sCertFEL('finanz-ia'))} />
-        <Opt label="No por ahora" sub="Puedes activarlo en cualquier momento"
+        <Opt label="No por ahora"
           selected={form.certFEL === 'ninguno'}
           onClick={() => pick(() => sCertFEL('ninguno'))} />
+        <Opt label="Sí, vía CORPOSISTEMAS (ERP/Odoo)"
+          selected={form.certFEL === 'odoo'} accent="emerald"
+          onClick={() => pick(() => sCertFEL('odoo'))} />
+        <Opt label="Sí, vía FinanzIA"
+          selected={form.certFEL === 'finanz-ia'} accent="emerald"
+          onClick={() => pick(() => sCertFEL('finanz-ia'))} />
       </div>
-      {form.certFEL === 'finanz-ia' && (
+      {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
         <p className="flex items-start gap-1.5 text-xs text-orange-500 mt-4">
           <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
-          El costo por DTE es variable y se factura mensualmente por separado — no está incluido en el total mensual.
+          El costo por DTE (Q0.20) es variable y se factura mensualmente por separado — no está incluido en el total mensual.
         </p>
       )}
     </>
