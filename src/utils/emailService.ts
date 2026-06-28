@@ -1,4 +1,6 @@
-const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
+const BREVO_URL    = 'https://api.brevo.com/v3/smtp/email';
+const BREVO_KEY    = import.meta.env.VITE_BREVO_API_KEY as string | undefined;
+const BREVO_SENDER = (import.meta.env.VITE_BREVO_SENDER as string | undefined) ?? 'info@kontaxes.com';
 
 export interface EmailQuotationParams {
   nombre?: string;
@@ -85,8 +87,10 @@ function buildEmailHTML(p: EmailQuotationParams): string {
 }
 
 export async function sendQuotationEmail(params: EmailQuotationParams): Promise<void> {
-  const apiKey = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_BREVO_API_KEY;
-  if (!apiKey) return;
+  if (!BREVO_KEY) {
+    console.warn('[emailService] VITE_BREVO_API_KEY no configurada — correo omitido.');
+    return;
+  }
 
   try {
     const base64 = await blobToBase64(params.blob);
@@ -98,10 +102,7 @@ export async function sendQuotationEmail(params: EmailQuotationParams): Promise<
     ];
 
     const body: Record<string, unknown> = {
-      sender: {
-        name: 'KONTAXES Cotizador',
-        email: (import.meta as unknown as { env: Record<string, string> }).env?.VITE_BREVO_SENDER ?? 'info@kontaxes.com',
-      },
+      sender: { name: 'KONTAXES Cotizador', email: BREVO_SENDER },
       subject: `Cotización KONTAXES — ${params.quoteNumber}`,
       htmlContent: html,
       attachment: [{ content: base64, name: params.filename }],
@@ -114,12 +115,17 @@ export async function sendQuotationEmail(params: EmailQuotationParams): Promise<
       body.to = adminRecipients;
     }
 
-    await fetch(BREVO_URL, {
+    const res = await fetch(BREVO_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+      headers: { 'Content-Type': 'application/json', 'api-key': BREVO_KEY },
       body: JSON.stringify(body),
     });
-  } catch {
-    // Silent fail — email is supplementary
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error('[emailService] Brevo error:', res.status, errText);
+    }
+  } catch (err) {
+    console.error('[emailService] fetch error:', err);
   }
 }
