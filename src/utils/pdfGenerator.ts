@@ -209,12 +209,6 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
 
   <div class="body">
 
-    ${clientRows ? `
-    <div class="client-section" style="margin-bottom:22px;">
-      <div class="section-title">Datos del Cliente</div>
-      <div class="client-box"><table>${clientRows}</table></div>
-    </div>` : ''}
-
     ${introPara}
 
     <div class="breakdown-section">
