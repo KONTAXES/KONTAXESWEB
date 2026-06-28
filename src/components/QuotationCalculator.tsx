@@ -372,9 +372,7 @@ export function QuotationCalculator() {
   const stepCertFEL = () => {
     const needsOdoo = form.contabilidadCompleta === true && form.alcance === 'compra-venta';
     const yesFELValue: CertFEL = needsOdoo ? 'odoo' : 'finanz-ia';
-    const yesFELLabel = needsOdoo
-      ? 'Sí, vía CORPOSISTEMAS (Q375 implementación + Q0.20/DTE)'
-      : 'Sí, vía FinanzIA (Q0.20/DTE)';
+    const yesFELLabel = 'Sí, necesito certificador FEL';
     return (
       <>
         <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
