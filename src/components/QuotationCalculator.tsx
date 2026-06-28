@@ -142,6 +142,7 @@ export function QuotationCalculator() {
   const [back, setBack]       = useState(false);
   const [result, setResult]   = useState<QuotationResult | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [contactError, setContactError] = useState(false);
 
   const steps  = getActiveSteps(form);
   const stepId = steps[Math.min(idx, steps.length - 1)];
@@ -173,7 +174,12 @@ export function QuotationCalculator() {
   const sContact          = (k: 'nombre' | 'empresa' | 'whatsapp' | 'correo', v: string) => setForm(p => ({ ...p, [k]: v }));
 
   /* PDF / share */
-  const handleCalc = () => setResult(calculateQuotation(form));
+  const handleCalc = () => {
+    const ok = !!(form.nombre?.trim() && form.empresa?.trim() && form.whatsapp?.trim() && form.correo?.trim());
+    if (!ok) { setContactError(true); return; }
+    setContactError(false);
+    setResult(calculateQuotation(form));
+  };
 
   const handlePDF = async () => {
     if (!result) return;
@@ -435,25 +441,38 @@ export function QuotationCalculator() {
   );
 
   const stepContact = () => {
-    const preview = calculateQuotation(form);
+    const fields: { k: 'nombre' | 'empresa' | 'whatsapp' | 'correo'; p: string; t: string }[] = [
+      { k: 'nombre',   p: 'Nombre completo *',    t: 'text'  },
+      { k: 'empresa',  p: 'Nombre de empresa *',  t: 'text'  },
+      { k: 'whatsapp', p: 'WhatsApp (+502…) *',   t: 'tel'   },
+      { k: 'correo',   p: 'Correo electrónico *', t: 'email' },
+    ];
     return (
       <>
-        <Q icon="👤" question="¿Tus datos?" hint="Opcional — los incluimos en tu cotización y PDF." />
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {([
-            { k: 'nombre'   as const, p: 'Nombre completo',    t: 'text'  },
-            { k: 'empresa'  as const, p: 'Nombre de empresa',  t: 'text'  },
-            { k: 'whatsapp' as const, p: 'WhatsApp (+502…)',    t: 'tel'   },
-            { k: 'correo'   as const, p: 'Correo electrónico', t: 'email' },
-          ]).map(f => (
-            <input key={f.k} type={f.t} placeholder={f.p}
-              value={form[f.k] || ''}
-              onChange={e => sContact(f.k, e.target.value)}
-              className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all" />
-          ))}
+        <Q question="¿Tus datos?" hint="Requeridos para personalizar tu cotización." />
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {fields.map(f => {
+            const empty = contactError && !form[f.k]?.trim();
+            return (
+              <input key={f.k} type={f.t} placeholder={f.p}
+                value={form[f.k] || ''}
+                onChange={e => { setContactError(false); sContact(f.k, e.target.value); }}
+                className={`px-4 py-3 rounded-xl bg-white/5 border text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:bg-white/8 transition-all ${
+                  empty
+                    ? 'border-red-500/60 focus:border-red-400'
+                    : 'border-white/10 focus:border-purple-500/50'
+                }`} />
+            );
+          })}
         </div>
+        {contactError && (
+          <p className="text-xs text-red-400 mb-4 flex items-center gap-1.5">
+            <AlertCircleIcon size={12} className="flex-shrink-0" />
+            Por favor completa todos los campos para generar tu cotización.
+          </p>
+        )}
         <button onClick={handleCalc}
-          className="w-full py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base flex items-center justify-center gap-2">
+          className="w-full py-4 font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 hover:from-purple-500 hover:to-violet-500 transition-all text-base flex items-center justify-center gap-2 mt-3">
           <CalculatorIcon size={20} /> Ver mi cotización →
         </button>
       </>

@@ -62,6 +62,20 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
 
   const warningItems = data.warnings.map(w => `<div class="warning-item">⚠ ${w}</div>`).join('');
 
+  const empresaPart = data.empresa ? ` de tu empresa <strong>${data.empresa}</strong>` : '';
+  const contactParts: string[] = [];
+  if (data.whatsapp) contactParts.push(`al número de teléfono <strong>${data.whatsapp}</strong>`);
+  if (data.correo)   contactParts.push(`al correo <strong>${data.correo}</strong>`);
+  const contactSentence = contactParts.length
+    ? ` Podemos contactarte ${contactParts.join(' y ')} para continuar compartiendo información.`
+    : '';
+  const introPara = data.nombre ? `
+    <div class="intro-para">
+      Estimado(a) <strong>${data.nombre}</strong>, es un gusto presentarte una cotización estimada del
+      costo de nuestros servicios profesionales para ser el aliado estratégico${empresaPart}.
+      A continuación te compartimos el detalle de los servicios y los costos correspondientes estimados.${contactSentence}
+    </div>` : '';
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -108,6 +122,9 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
 
     /* ── Section titles ── */
     .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#7c3aed;margin-bottom:10px;border-bottom:2px solid #f3e8ff;padding-bottom:5px;}
+
+    /* ── Intro paragraph ── */
+    .intro-para{font-size:12px;color:#374151;line-height:1.75;margin-bottom:22px;padding:16px 20px;background:#faf5ff;border-left:4px solid #9333ea;border-radius:0 8px 8px 0;}
 
     /* ── Client info ── */
     .client-box{background:#faf5ff;border-left:4px solid #9333ea;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:22px;}
@@ -197,6 +214,8 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
       <div class="section-title">Datos del Cliente</div>
       <div class="client-box"><table>${clientRows}</table></div>
     </div>` : ''}
+
+    ${introPara}
 
     <div class="breakdown-section">
       <div class="section-title">Desglose de Cotización</div>
