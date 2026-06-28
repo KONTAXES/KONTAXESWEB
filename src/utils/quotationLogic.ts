@@ -99,13 +99,17 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
 
   const contrib = data.contribuyente as Contribuyente;
   const reg     = data.regimen as Regimen;
+  const obligatoria = isContabilidadObligatoria(data);
+  const incluyeContabilidad = obligatoria || data.contabilidadCompleta === true;
 
   // 1. Precio base
   const base = BASE_PRICES[contrib][reg];
   breakdown.push({
     item: `Servicio contable — ${CONTRIB_LABEL[contrib]} · ${REGIMEN_LABEL[reg]}`,
     cost: base,
-    note: 'Incluye registro contable y elaboración de estados financieros básicos',
+    note: incluyeContabilidad
+      ? 'Incluye estados financieros básicos y libros contables'
+      : 'Incluye libro de compras y ventas',
   });
   total += base;
 
@@ -114,14 +118,13 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
     breakdown.push({
       item: 'Alcance compra-venta — sistema de inventarios y costo de ventas',
       cost: 500,
-      note: 'Sistema más robusto con control de inventarios, costo de ventas y conciliación de mercancías',
+      note: 'Control de inventarios, costo de ventas y conciliación de mercancías',
     });
     total += 500;
   }
 
-  // 3. Contabilidad completa (FinanzIA)
-  const obligatoria = isContabilidadObligatoria(data);
-  if (obligatoria || data.contabilidadCompleta === true) {
+  // 3. Contabilidad completa
+  if (incluyeContabilidad) {
     breakdown.push({
       item: `Contabilidad completa${obligatoria ? ' — obligatoria por ley' : ''}`,
       cost: 500,

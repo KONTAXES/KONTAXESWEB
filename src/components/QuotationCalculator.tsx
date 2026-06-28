@@ -387,28 +387,32 @@ export function QuotationCalculator() {
     );
   };
 
-  const stepCertFEL = () => (
-    <>
-      <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
-      <div className="space-y-3">
-        <Opt label="No por ahora"
-          selected={form.certFEL === 'ninguno'}
-          onClick={() => pick(() => sCertFEL('ninguno'))} />
-        <Opt label="Sí, vía CORPOSISTEMAS (ERP/Odoo)"
-          selected={form.certFEL === 'odoo'} accent="emerald"
-          onClick={() => pick(() => sCertFEL('odoo'))} />
-        <Opt label="Sí, vía FinanzIA"
-          selected={form.certFEL === 'finanz-ia'} accent="emerald"
-          onClick={() => pick(() => sCertFEL('finanz-ia'))} />
-      </div>
-      {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
-        <p className="flex items-start gap-1.5 text-xs text-orange-500 mt-4">
-          <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
-          El costo por DTE (Q0.20) es variable y se factura mensualmente por separado — no está incluido en el total mensual.
-        </p>
-      )}
-    </>
-  );
+  const stepCertFEL = () => {
+    const needsOdoo = form.contabilidadCompleta === true && form.alcance === 'compra-venta';
+    const yesFELValue: CertFEL = needsOdoo ? 'odoo' : 'finanz-ia';
+    const yesFELLabel = needsOdoo
+      ? 'Sí, vía CORPOSISTEMAS (Q375 implementación + Q0.20/DTE)'
+      : 'Sí, vía FinanzIA (Q0.20/DTE)';
+    return (
+      <>
+        <Q question="¿Necesitas certificador FEL?" hint="Factura Electrónica en Línea certificada por la SAT." />
+        <div className="space-y-3">
+          <Opt label="No por ahora"
+            selected={form.certFEL === 'ninguno'}
+            onClick={() => pick(() => sCertFEL('ninguno'))} />
+          <Opt label={yesFELLabel}
+            selected={form.certFEL === yesFELValue} accent="emerald"
+            onClick={() => pick(() => sCertFEL(yesFELValue))} />
+        </div>
+        {(form.certFEL === 'odoo' || form.certFEL === 'finanz-ia') && (
+          <p className="flex items-start gap-1.5 text-xs text-orange-500 mt-4">
+            <AlertCircleIcon size={13} className="flex-shrink-0 mt-0.5" />
+            El Q0.20/DTE es variable y se factura mensualmente por separado — no está incluido en el total mensual.
+          </p>
+        )}
+      </>
+    );
+  };
 
   const stepWAFel = () => (
     <>
