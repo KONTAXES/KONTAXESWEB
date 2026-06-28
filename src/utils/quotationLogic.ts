@@ -108,7 +108,7 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
     item: `Servicio contable — ${CONTRIB_LABEL[contrib]} · ${REGIMEN_LABEL[reg]}`,
     cost: base,
     note: incluyeContabilidad
-      ? 'Incluye estados financieros básicos y libros contables'
+      ? 'Incluye libros contables'
       : 'Incluye libro de compras y ventas',
   });
   total += base;
@@ -137,7 +137,7 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
       cost: 500,
       note: obligatoria
         ? 'Obligatoria según normativa vigente. Catálogo de cuentas, asientos y estados financieros.'
-        : 'Catálogo de cuentas, asientos contables y estados financieros completos.',
+        : 'Catálogo de cuentas, asientos contables y estados financieros básicos.',
     });
     total += 500;
   }
@@ -162,7 +162,7 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   // 5. FELSimple — facturas por WhatsApp
   if (data.whatsappFEL === true) {
     breakdown.push({
-      item: 'FELSimple — Emisión de facturas por WhatsApp',
+      item: 'Emisión de facturas por WhatsApp',
       cost: 50,
       note: 'Factura electrónica certificada directamente desde WhatsApp en segundos',
     });
@@ -172,11 +172,11 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   // 6. Notas sobre FEL (costo variable, no entra al total mensual)
   if (data.certFEL === 'odoo') {
     notes.push(
-      'Certificador FEL vía Odoo (CORPOSISTEMAS, S.A.): Q375 de implementación (cobro único, facturado por separado) + Q0.20 por DTE emitido, facturado mensualmente por separado.'
+      'Certificador FEL (CORPOSISTEMAS, S.A.): Q375 de implementación (cobro único, facturado por separado) + Q0.20 por DTE emitido, facturado mensualmente por separado.'
     );
   } else if (data.certFEL === 'finanz-ia') {
     notes.push(
-      'Certificador FEL vía FinanzIA: Q0.20 por DTE emitido, facturado mensualmente por separado. Sin costo de implementación adicional.'
+      'Certificador FEL: Q0.20 por DTE emitido, facturado mensualmente por separado. Sin costo de implementación adicional.'
     );
   }
 
@@ -198,10 +198,10 @@ export function buildFormSummary(data: QuotationData): string[] {
     lines.push('Contabilidad completa');
   if (data.presentacionImpuestos === true)
     lines.push(`Presentación de impuestos (${FORMS[data.regimen as Regimen]} formulario(s))`);
-  if (data.certFEL === 'odoo')      lines.push('Certificador FEL vía Odoo (CORPOSISTEMAS, S.A.)');
-  if (data.certFEL === 'finanz-ia') lines.push('Certificador FEL vía FinanzIA');
+  if (data.certFEL === 'odoo')      lines.push('Certificador FEL (CORPOSISTEMAS, S.A.)');
+  if (data.certFEL === 'finanz-ia') lines.push('Certificador FEL');
   if (data.certFEL === 'ninguno')   lines.push('Sin certificador FEL por ahora');
-  if (data.whatsappFEL === true)    lines.push('FELSimple — Facturas por WhatsApp (+Q50/mes)');
+  if (data.whatsappFEL === true)    lines.push('Facturas por WhatsApp (+Q50/mes)');
   return lines;
 }
 
