@@ -118,11 +118,10 @@ export async function generateQuotationPDF(data: QuotationPDFData): Promise<void
     .lbl{color:#7c3aed;font-weight:700;width:90px;}
 
     /* ── Summary list ── */
-    .summary-box{background:#f8f9ff;border:1px solid #e0e7ff;border-radius:8px;padding:14px 18px;margin-bottom:22px;}
-    .summary-box ul{list-style:none;padding:0;}
-    .summary-box li{padding:4px 0;border-bottom:1px solid #ede9fe;font-size:12px;color:#374151;}
-    .summary-box li:last-child{border-bottom:none;}
-    .summary-box li::before{content:"✔";color:#7c3aed;margin-right:8px;font-size:10px;}
+    .summary-box{margin-bottom:14px;}
+    .summary-box ul{list-style:none;padding:0;columns:2;column-gap:24px;}
+    .summary-box li{padding:3px 0;font-size:11px;color:#374151;break-inside:avoid;}
+    .summary-box li::before{content:"✔";color:#7c3aed;margin-right:6px;font-size:10px;}
 
     /* ── Breakdown table ── */
     .breakdown-table{width:100%;border-collapse:collapse;margin-bottom:0;}
