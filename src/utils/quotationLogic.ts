@@ -172,7 +172,7 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   // 6. Notas sobre FEL (costo variable, no entra al total mensual)
   if (data.certFEL === 'odoo') {
     notes.push(
-      'Certificador FEL (CORPOSISTEMAS, S.A.): Q375 de implementación (cobro único, facturado por separado) + Q0.20 por DTE emitido, facturado mensualmente por separado.'
+      'Certificador FEL: Q375 de implementación (cobro único, facturado por separado) + Q0.20 por DTE emitido, facturado mensualmente por separado.'
     );
   } else if (data.certFEL === 'finanz-ia') {
     notes.push(
@@ -198,7 +198,7 @@ export function buildFormSummary(data: QuotationData): string[] {
     lines.push('Contabilidad completa');
   if (data.presentacionImpuestos === true)
     lines.push(`Presentación de impuestos (${FORMS[data.regimen as Regimen]} formulario(s))`);
-  if (data.certFEL === 'odoo')      lines.push('Certificador FEL (CORPOSISTEMAS, S.A.)');
+  if (data.certFEL === 'odoo')      lines.push('Certificador FEL');
   if (data.certFEL === 'finanz-ia') lines.push('Certificador FEL');
   if (data.certFEL === 'ninguno')   lines.push('Sin certificador FEL por ahora');
   if (data.whatsappFEL === true)    lines.push('Facturas por WhatsApp (+Q50/mes)');
