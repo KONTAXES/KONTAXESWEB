@@ -7,13 +7,15 @@ export type ServiceType =
   | 'odoo'
   | 'legales';
 
-export type OdooSubtype = 'modulos-ktx' | 'acceso' | 'implementacion';
-export type OutsourcingRole = 'auxiliar' | 'analista' | 'junior' | 'senior';
-export type AccesoPlan = 'plan-1' | 'plan-5' | 'plan-10';
-export type Contribuyente = 'individual' | 'sociedad';
-export type Regimen = 'pequeño' | 'opcional' | 'general';
-export type Alcance = 'servicios' | 'compra-venta';
-export type CertFEL = 'ninguno' | 'odoo' | 'finanz-ia';
+export type OdooSubtype       = 'modulos-ktx' | 'acceso' | 'implementacion';
+export type OutsourcingRole   = 'auxiliar' | 'analista' | 'junior' | 'senior';
+export type AccesoPlan        = 'plan-1' | 'plan-5' | 'plan-10';
+export type Contribuyente     = 'individual' | 'sociedad';
+export type Regimen           = 'pequeño' | 'opcional' | 'general';
+export type Alcance           = 'servicios' | 'compra-venta';
+export type CertFEL           = 'ninguno' | 'odoo' | 'finanz-ia';
+export type AdminSubService   = 'tesoreria' | 'cuentas-cobrar' | 'cuentas-pagar' | 'analisis-financiero';
+export type ConsultoriaSubService = 'planificacion' | 'regimen' | 'dudas' | 'konsultaxes-ia';
 
 export interface QuotationData {
   serviceType: ServiceType | '';
@@ -29,6 +31,9 @@ export interface QuotationData {
   whatsappFEL: boolean | null;
   // Outsourcing
   outsourcingRole: OutsourcingRole | '';
+  // Admin / Consultoría sub-selections
+  adminSubService: AdminSubService | '';
+  consultoriaSubService: ConsultoriaSubService | '';
   // Odoo
   odooSubtype: OdooSubtype | '';
   implementacionChoice: 'acceso' | 'partner' | '';
@@ -85,30 +90,37 @@ export const OUTSOURCING_ROLE_LABEL: Record<OutsourcingRole, string> = {
   senior:   'Contador Senior',
 };
 
-export const HOURLY_RATE: Record<OutsourcingRole, number> = {
-  auxiliar: 30,
-  analista: 40,
-  junior:   50,
-  senior:   60,
-};
-
 export const ACCESO_PLANS: Record<AccesoPlan, { label: string; total: number }> = {
   'plan-1':  { label: '1 empresa + 1 usuario',   total: 600  },
   'plan-5':  { label: '5 empresas + 1 usuario',  total: 900  },
-  'plan-10': { label: '10 empresas + 1 usuario', total: 1100 },
+  'plan-10': { label: '10 empresas + 1 usuario', total: 1200 },
 };
 
 export const PRICE_USUARIO_ADICIONAL = 150;
 
+export const ADMIN_SUB_LABEL: Record<AdminSubService, string> = {
+  tesoreria:           'Tesorería',
+  'cuentas-cobrar':    'Cuentas por Cobrar',
+  'cuentas-pagar':     'Cuentas por Pagar',
+  'analisis-financiero': 'Análisis Financiero',
+};
+
+export const CONSULTORIA_SUB_LABEL: Record<ConsultoriaSubService, string> = {
+  planificacion:   'Planificación Fiscal Estratégica',
+  regimen:         '¿Qué régimen fiscal me conviene?',
+  dudas:           'Resolución de dudas fiscales puntuales',
+  'konsultaxes-ia': 'KONSULTAXES IA — asistente fiscal inteligente',
+};
+
 // ── KTX Modules ────────────────────────────────────────────────────────────
 
 export const KTX_MODULES = [
-  { name: 'Liquidación de Gastos',         url: 'https://apps.odoo.com/apps/modules/19.0/ktx_expense_management' },
-  { name: 'Caja Chica',                    url: 'https://apps.odoo.com/apps/modules/19.0/ktx_petty_cash'         },
-  { name: 'Importación Masiva XML-SAT-FEL-GT', url: 'https://apps.odoo.com/apps/modules/19.0/ktx_mass_import'   },
-  { name: 'Asignación Masiva',             url: 'https://apps.odoo.com/apps/modules/19.0/ktx_mass_update'        },
-  { name: 'Impresión de Cheques',          url: 'https://apps.odoo.com/apps/modules/19.0/ktx_check_print'        },
-  { name: 'Reportería Fiscal SAT-GT',      url: 'https://apps.odoo.com/apps/modules/19.0/ktx_satgt_reports'      },
+  { name: 'Liquidación de Gastos',          url: 'https://apps.odoo.com/apps/modules/19.0/ktx_expense_management' },
+  { name: 'Caja Chica',                     url: 'https://apps.odoo.com/apps/modules/19.0/ktx_petty_cash'         },
+  { name: 'Importación Masiva XML-SAT-FEL-GT', url: 'https://apps.odoo.com/apps/modules/19.0/ktx_mass_import'    },
+  { name: 'Asignación Masiva',              url: 'https://apps.odoo.com/apps/modules/19.0/ktx_mass_update'        },
+  { name: 'Impresión de Cheques',           url: 'https://apps.odoo.com/apps/modules/19.0/ktx_check_print'        },
+  { name: 'Reportería Fiscal SAT-GT',       url: 'https://apps.odoo.com/apps/modules/19.0/ktx_satgt_reports'      },
 ] as const;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -230,47 +242,76 @@ const BASE_HOURS: Record<Contribuyente, Record<Regimen, number>> = {
   sociedad:   { pequeño: 30, opcional: 50, general: 65 },
 };
 
-export function calculateOutsourcingQuotation(data: QuotationData): QuotationResult {
-  if (!data.contribuyente || !data.regimen || !data.outsourcingRole)
-    return { total: 0, breakdown: [], notes: [] };
+// Costo real mensual por perfil (sueldo + prestaciones de ley)
+export const ROLE_LABOR_COST: Record<OutsourcingRole, { salary: number; prestaciones: number }> = {
+  auxiliar: { salary: 4252.28, prestaciones: 1730.01 },
+  analista: { salary: 6500.00, prestaciones: 2644.85 },
+  junior:   { salary: 9000.00, prestaciones: 3663.00 },
+  senior:   { salary: 15000.00, prestaciones: 6103.50 },
+};
 
+function calcOutsourcingHours(data: QuotationData): number {
+  if (!data.contribuyente || !data.regimen) return 0;
   const contrib = data.contribuyente as Contribuyente;
   const reg     = data.regimen as Regimen;
-  const role    = data.outsourcingRole as OutsourcingRole;
-  const rate    = HOURLY_RATE[role];
   const obligatoria = isContabilidadObligatoria(data);
   const incluyeContabilidad = obligatoria || data.contabilidadCompleta === true;
 
   let hours = BASE_HOURS[contrib][reg];
-
   if (data.alcance === 'compra-venta') {
     const isIndPequeno = contrib === 'individual' && reg === 'pequeño';
     if (isIndPequeno && incluyeContabilidad) hours += 8;
     else if (!isIndPequeno) hours += 15;
   }
-
   if (incluyeContabilidad) hours += 20;
   if (data.planillaIGSS === true) hours += 10;
   if (data.presentacionImpuestos === true) hours += FORMS[reg] * 3;
   if (data.whatsappFEL === true) hours += 2;
+  return hours;
+}
 
-  const laborCost  = hours * rate;
+function round2(n: number): number { return Math.round(n * 100) / 100; }
+
+export function calculateOutsourcingQuotation(data: QuotationData): QuotationResult {
+  if (!data.contribuyente || !data.regimen || !data.outsourcingRole)
+    return { total: 0, breakdown: [], notes: [] };
+
+  const role   = data.outsourcingRole as OutsourcingRole;
+  const { salary, prestaciones } = ROLE_LABOR_COST[role];
+  const hours  = calcOutsourcingHours(data);
   const supervision = 800;
+
+  const subtotal      = salary + prestaciones + supervision;
+  const fee           = round2(subtotal * 0.15);
+  const subtotalFee   = round2(subtotal + fee);
+  const iva           = round2(subtotalFee * 0.12);
+  const total         = round2(subtotalFee + iva);
 
   const breakdown: BreakdownItem[] = [
     {
-      item: `Personal tercerizado — ${OUTSOURCING_ROLE_LABEL[role]}`,
-      cost: laborCost,
-      note: `${hours} horas/mes × Q${rate}/hr`,
+      item: `Sueldo mensual — ${OUTSOURCING_ROLE_LABEL[role]} (${hours} horas/mes)`,
+      cost: salary,
+      note: 'Sueldo base + bonificación de ley',
+    },
+    {
+      item: 'Prestaciones de ley',
+      cost: prestaciones,
+      note: 'IGSS patronal, aguinaldo, bono 14, indemnización, vacaciones',
     },
     {
       item: 'Supervisión mensual (4 visitas)',
       cost: supervision,
       note: '1 visita semanal × Q200 c/u',
     },
+    { item: 'FEE del servicio (15%)', cost: fee },
+    { item: 'IVA (12%)',              cost: iva },
   ];
 
-  return { total: laborCost + supervision, breakdown, notes: [] };
+  return {
+    total,
+    breakdown,
+    notes: ['Sujeto a retención de ISR del 5% por parte del cliente según normativa SAT vigente.'],
+  };
 }
 
 // ── Acceso SaaS ────────────────────────────────────────────────────────────
@@ -298,9 +339,8 @@ export function calculateAccesoQuotation(data: QuotationData): QuotationResult {
     total,
     breakdown,
     notes: [
-      'Servicio SaaS: derecho de uso y acceso a nuestra base de datos Odoo V19 Enterprise. ' +
-      'No es una implementación propia del cliente — incluye acceso a nuestros módulos preinstalados. ' +
-      'Módulos adicionales se desarrollan con costo separado.',
+      'Servicio SaaS: derecho de uso y acceso a nuestra base de datos Odoo V19 Enterprise. No es una implementación propia del cliente — incluye acceso a nuestros módulos preinstalados.',
+      'Módulos adicionales se desarrollan con costo separado. Algunos módulos tienen gastos de implementación adicionales, como el certificador FEL: Q375 único de implementación + Q0.20 por DTE emitido.',
     ],
   };
 }
@@ -311,7 +351,8 @@ export function buildFormSummary(data: QuotationData): string[] {
   const lines: string[] = [];
 
   if (data.serviceType === 'outsourcing' && data.outsourcingRole) {
-    lines.push(OUTSOURCING_ROLE_LABEL[data.outsourcingRole as OutsourcingRole]);
+    const hours = calcOutsourcingHours(data);
+    lines.push(`${OUTSOURCING_ROLE_LABEL[data.outsourcingRole as OutsourcingRole]}${hours > 0 ? ` — ${hours} horas/mes` : ''}`);
   }
 
   if (data.serviceType === 'odoo' && data.accesoPlan) {
@@ -321,6 +362,12 @@ export function buildFormSummary(data: QuotationData): string[] {
       lines.push(`${data.accesoUsuariosAdicionales} usuario(s) adicional(es)`);
     return lines;
   }
+
+  if (data.serviceType === 'admin-financiero' && data.adminSubService)
+    lines.push(ADMIN_SUB_LABEL[data.adminSubService as AdminSubService]);
+
+  if (data.serviceType === 'consultoria-fiscal' && data.consultoriaSubService)
+    lines.push(CONSULTORIA_SUB_LABEL[data.consultoriaSubService as ConsultoriaSubService]);
 
   if (data.contribuyente) lines.push(CONTRIB_LABEL[data.contribuyente as Contribuyente]);
   if (data.regimen) lines.push(REGIMEN_LABEL[data.regimen as Regimen]);
