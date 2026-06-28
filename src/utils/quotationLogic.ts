@@ -115,12 +115,19 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
 
   // 2. Compra-venta de bienes
   if (data.alcance === 'compra-venta') {
-    breakdown.push({
-      item: 'Alcance compra-venta — sistema de inventarios y costo de ventas',
-      cost: 500,
-      note: 'Control de inventarios, costo de ventas y conciliación de mercancías',
-    });
-    total += 500;
+    const isIndividualPequeno = contrib === 'individual' && reg === 'pequeño';
+    if (isIndividualPequeno && !incluyeContabilidad) {
+      // Sin incremento: pequeño contribuyente individual sin contabilidad completa
+      // no requiere control de inventarios ni costos
+    } else {
+      const costCV = isIndividualPequeno ? 250 : 500;
+      breakdown.push({
+        item: 'Alcance compra-venta — sistema de inventarios y costo de ventas',
+        cost: costCV,
+        note: 'Control de inventarios, costo de ventas y conciliación de mercancías',
+      });
+      total += costCV;
+    }
   }
 
   // 3. Contabilidad completa
