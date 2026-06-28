@@ -46,7 +46,7 @@ const BASE_PRICES: Record<Contribuyente, Record<Regimen, number>> = {
 };
 
 // Número de formularios fiscales que presenta cada régimen
-export const FORMS: Record<Regimen, number> = { pequeño: 1, opcional: 2, general: 4 };
+export const FORMS: Record<Regimen, number> = { pequeño: 1, opcional: 4, general: 4 };
 
 export const REGIMEN_LABEL: Record<Regimen, string> = {
   pequeño:  'Pequeño Contribuyente (IVA 5%)',
@@ -145,7 +145,8 @@ export function calculateQuotation(data: QuotationData): QuotationResult {
   // 4. Presentación de impuestos
   if (data.presentacionImpuestos === true) {
     const numForms = FORMS[reg];
-    const costImp  = numForms * 100;
+    const pricePerForm = contrib === 'individual' ? 50 : 100;
+    const costImp  = numForms * pricePerForm;
     const formLabel = numForms === 1 ? '1 formulario' : `${numForms} formularios`;
     breakdown.push({
       item: `Presentación de impuestos (${formLabel})`,
