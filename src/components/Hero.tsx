@@ -29,9 +29,10 @@ export function Hero() {
     // ── Scene ─────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
 
-    // ── Environment (Room reflections — makes PBR look real) ──────────
+    // ── Environment (subtle PBR reflections) ─────────────────────────
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.55;
     pmrem.dispose();
 
     // ── Camera ────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export function Hero() {
     composer.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.38, 0.55, 0.84
+      0.15, 0.45, 0.92
     );
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
@@ -109,8 +110,8 @@ export function Hero() {
 
     // ── Materials (matching reference palette) ────────────────────────
     // Platform
-    const mPlatform  = P(0x1e0a3c, 0.55, 0.05, 0.3, 0.2);
-    const mPlatEdge  = S(0x2d1060, 0.5, 0.05);
+    const mPlatform  = S(0x1e0a3c, 0.97, 0, { envMapIntensity: 0 });
+    const mPlatEdge  = S(0x2d1060, 0.96, 0, { envMapIntensity: 0 });
     // Desk
     const mWood      = P(0xc4953a, 0.58, 0.05, 0.25, 0.3);  // warm wood
     const mDeskFrame = S(0x1c1917, 0.65, 0.1);               // dark frame
@@ -593,7 +594,7 @@ export function Hero() {
     addPlant(officeGroup,  5.8 - 1.4, DZ - 0.6, 0.44, mPotClay, 'bush');
 
     // Walls (back + sides, subtle so scene breathes)
-    const wallMat = S(0x0e0820, 0.98);
+    const wallMat = S(0x0e0820, 0.99, 0, { envMapIntensity: 0 });
     const wallB = new THREE.Mesh(new THREE.BoxGeometry(34, 11, 0.24), wallMat);
     wallB.position.set(0, 5.5, -11);
     wallB.receiveShadow = true;
@@ -607,7 +608,7 @@ export function Hero() {
     officeGroup.add(wallR);
 
     // Ceiling
-    const ceil = new THREE.Mesh(new THREE.BoxGeometry(34, 0.22, 24), S(0x0c0618, 0.98));
+    const ceil = new THREE.Mesh(new THREE.BoxGeometry(34, 0.22, 24), S(0x0c0618, 0.99, 0, { envMapIntensity: 0 }));
     ceil.position.set(0, 10.1, 0);
     officeGroup.add(ceil);
 
