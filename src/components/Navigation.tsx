@@ -138,12 +138,19 @@ export function Navigation({ isDark, toggleTheme }: NavigationProps) {
 
           {/* Right CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            <a href="https://app.kontaxes.com" target="_blank" rel="noopener noreferrer"
-              className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-lg text-sm hover:from-emerald-400 hover:to-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-0.5 hover:shadow-emerald-500/25">
+            {/* APP — temporalmente desactivado */}
+            <span
+              className="px-5 py-2 bg-gradient-to-r from-emerald-900/40 to-teal-900/40 text-emerald-700/50 font-bold rounded-lg text-sm cursor-not-allowed select-none border border-emerald-900/30"
+              title="Próximamente"
+            >
               APP
-            </a>
-            <a href="https://odoo.kontaxes.com" target="_blank" rel="noopener noreferrer"
-              className="px-5 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-lg text-sm hover:from-purple-500 hover:to-violet-500 transition-all duration-200 shadow-lg hover:-translate-y-0.5 hover:shadow-purple-500/25">
+            </span>
+            <a href="https://odoo.kontaxes.com/web/login" target="_blank" rel="noopener noreferrer"
+              className="relative px-5 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-lg text-sm
+                hover:from-purple-500 hover:to-violet-500 transition-all duration-200
+                shadow-lg hover:-translate-y-0.5 hover:shadow-purple-500/30
+                after:absolute after:inset-0 after:rounded-lg after:shadow-[0_0_12px_3px_rgba(147,51,234,0.45)]
+                after:animate-pulse after:pointer-events-none">
               ODOO
             </a>
             <button onClick={toggleTheme}
@@ -158,10 +165,11 @@ export function Navigation({ isDark, toggleTheme }: NavigationProps) {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2">
-            <a href="https://app.kontaxes.com" target="_blank" rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-lg text-xs">APP</a>
-            <a href="https://odoo.kontaxes.com" target="_blank" rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-lg text-xs">ODOO</a>
+            {/* APP — temporalmente desactivado */}
+            <span className="px-3 py-1.5 bg-gradient-to-r from-emerald-900/40 to-teal-900/40 text-emerald-700/50 font-bold rounded-lg text-xs cursor-not-allowed border border-emerald-900/30">APP</span>
+            <a href="https://odoo.kontaxes.com/web/login" target="_blank" rel="noopener noreferrer"
+              className="relative px-3 py-1.5 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-lg text-xs
+                after:absolute after:inset-0 after:rounded-lg after:shadow-[0_0_10px_2px_rgba(147,51,234,0.5)] after:animate-pulse after:pointer-events-none">ODOO</a>
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all">
               {isMobileMenuOpen ? <XIcon size={20} /> : <MenuIcon size={20} />}
