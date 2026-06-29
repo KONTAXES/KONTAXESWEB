@@ -1,352 +1,568 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-
-// ── Mini financial chart components ───────────────────────────────
-
-const BAR_SETS = [
-  [42, 66, 28, 55, 60, 33, 50],
-  [60, 33, 75, 46, 66, 55, 42],
-  [28, 57, 42, 72, 33, 64, 48],
-  [66, 48, 72, 36, 60, 55, 66],
-];
-const COLORS_BAR = ['#7c3aed', '#a855f7', '#7c3aed', '#10b981', '#7c3aed', '#a855f7', '#6d28d9'];
-
-const MiniBar = ({ d }: { d: number[] }) => (
-  <svg width="95" height="78" viewBox="0 0 95 78" fill="none">
-    {d.map((h, i) => (
-      <rect key={i} x={i * 14 + 0.5} y={78 - h} width="11" height={h}
-        fill={COLORS_BAR[i]} rx="2.5" opacity="0.92" />
-    ))}
-    <line x1="0" y1="78" x2="95" y2="78" stroke="#9333ea" strokeWidth="0.8" opacity="0.4" />
-  </svg>
-);
-
-const LINE_PTS = [
-  [[0,48],[14,30],[28,42],[42,17],[56,26],[70,8],[84,20]],
-  [[0,20],[14,36],[28,15],[42,32],[56,11],[70,26],[84,9]],
-  [[0,34],[14,18],[28,44],[42,11],[56,32],[70,20],[84,26]],
-];
-
-const MiniLine = ({ pts, id }: { pts: number[][]; id: string }) => {
-  const points = pts.map(([x,y]) => `${x},${y}`).join(' ');
-  const areaPath = `M${pts[0][0]},58 ` + pts.map(([x,y]) => `L${x},${y}`).join(' ') + ` L${pts[pts.length-1][0]},58 Z`;
-  return (
-    <svg width="90" height="65" viewBox="0 0 90 65" fill="none">
-      <defs>
-        <linearGradient id={`lg-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.38" />
-          <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#lg-${id})`} />
-      <polyline points={points} stroke="#a855f7" strokeWidth="2.8" strokeLinejoin="round" />
-      {pts.map(([x,y], i) => (
-        <circle key={i} cx={x} cy={y} r="4" fill="#a855f7" />
-      ))}
-    </svg>
-  );
-};
-
-const C = 138.2; // 2π × 22
-const MiniDonut = ({ s1 = '#7c3aed', s2 = '#a855f7', s3 = '#10b981', p1 = 0.50, p2 = 0.30 }: {
-  s1?: string; s2?: string; s3?: string; p1?: number; p2?: number;
-}) => (
-  <svg width="76" height="76" viewBox="0 0 76 76">
-    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="13" stroke="rgba(147,51,234,0.14)" />
-    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="10" stroke={s1}
-      strokeDasharray={`${C * p1} ${C}`} strokeDashoffset="0" transform="rotate(-90 38 38)" />
-    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="10" stroke={s2}
-      strokeDasharray={`${C * p2} ${C}`} strokeDashoffset={`${-C * p1}`} transform="rotate(-90 38 38)" />
-    <circle cx="38" cy="38" r="22" fill="none" strokeWidth="10" stroke={s3}
-      strokeDasharray={`${C * (1 - p1 - p2)} ${C}`} strokeDashoffset={`${-C * (p1 + p2)}`} transform="rotate(-90 38 38)" />
-  </svg>
-);
-
-function arcPath(cx: number, cy: number, r: number, a0: number, a1: number) {
-  const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
-  const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-  return `M${cx},${cy} L${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${(a1-a0)>Math.PI?1:0},1 ${x1.toFixed(1)},${y1.toFixed(1)} Z`;
-}
-const MiniPie = ({ pcts = [0.42,0.28,0.18,0.12], cols = ['#7c3aed','#a855f7','#10b981','#6d28d9'] }: {
-  pcts?: number[]; cols?: string[];
-}) => {
-  let a = -Math.PI / 2;
-  return (
-    <svg width="76" height="76" viewBox="0 0 76 76">
-      {pcts.map((p, i) => { const s = a; a += p * 2 * Math.PI; return <path key={i} d={arcPath(38,38,32,s,a)} fill={cols[i]} />; })}
-    </svg>
-  );
-};
-
-const MiniCalc = ({ val, lbl = 'CALC' }: { val: string; lbl?: string }) => (
-  <div style={{
-    borderRadius: 14, border: '1px solid rgba(167,139,250,0.45)',
-    padding: '9px 16px', fontFamily: 'monospace', textAlign: 'right', minWidth: 126,
-  }}>
-    <div style={{ fontSize: 9, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 3 }}>{lbl}</div>
-    <div style={{ color: '#f3e8ff', fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{val}</div>
-  </div>
-);
-
-const MiniStatement = () => (
-  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 156 }}>
-    <div style={{ color: '#c084fc', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(147,51,234,0.3)', paddingBottom: 3 }}>
-      Estado de Resultados
-    </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>Ingresos</span><span>Q 48,000</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>(-) Costos</span><span>Q 12,500</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a78bfa', gap: 18 }}><span>(-) Gastos</span><span>Q 4,200</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f3e8ff', fontWeight: 800, borderTop: '1px solid rgba(147,51,234,0.3)', marginTop: 3, paddingTop: 3, gap: 18 }}>
-      <span>Utilidad</span><span>Q 31,300</span>
-    </div>
-  </div>
-);
-
-const MiniBalance = () => (
-  <div style={{ fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.7, minWidth: 148 }}>
-    <div style={{ color: '#34d399', fontWeight: 800, fontSize: 11.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.2, borderBottom: '1px solid rgba(16,185,129,0.3)', paddingBottom: 3 }}>
-      Balance General
-    </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6ee7b7', gap: 14 }}><span>Total Activo</span><span>Q 95,400</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6ee7b7', gap: 14 }}><span>Pasivo</span><span>Q 28,700</span></div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a7f3d0', fontWeight: 800, borderTop: '1px solid rgba(16,185,129,0.3)', marginTop: 3, paddingTop: 3, gap: 14 }}>
-      <span>Capital</span><span>Q 66,700</span>
-    </div>
-  </div>
-);
-
-// ── Brand logos — real GIF/PNG files ────────────────────────────────
-
-const LogoAnthropicOrb = () => (
-  <img src="/logo-claude.gif" alt="Claude" style={{ height: 72, width: 'auto', display: 'block' }} />
-);
-
-const LogoClaude = () => (
-  <img src="/logo-claude.gif" alt="Claude" style={{ height: 56, width: 'auto', display: 'block' }} />
-);
-
-const LogoOdoo = () => (
-  <img src="/logo-odoo.gif" alt="Odoo" style={{ height: 64, width: 'auto', display: 'block' }} />
-);
-
-const LogoFinanzIA = () => (
-  <img src="/logo-finanz-ia.png" alt="FinanzIA" style={{ height: 48, width: 'auto', display: 'block' }} />
-);
-
-// ── Floating element definitions ────────────────────────────────
-
-type FItem = { node: React.ReactNode; left: number; top: number; dur: number; delay: number; op: number; };
-
-const FITEMS: FItem[] = [
-  // Bar charts
-  { node: <MiniBar d={BAR_SETS[0]} />, left:  2, top: 12, dur: 11, delay:  -3, op: 0.48 },
-  { node: <MiniBar d={BAR_SETS[1]} />, left: 84, top: 35, dur: 13, delay:  -7, op: 0.42 },
-  { node: <MiniBar d={BAR_SETS[2]} />, left:  8, top: 65, dur: 10, delay:  -9, op: 0.40 },
-  { node: <MiniBar d={BAR_SETS[3]} />, left: 90, top: 52, dur: 12, delay:  -2, op: 0.38 },
-  // Line charts
-  { node: <MiniLine pts={LINE_PTS[0]} id="a" />, left:  4, top: 44, dur: 12, delay:  -5, op: 0.45 },
-  { node: <MiniLine pts={LINE_PTS[1]} id="b" />, left: 78, top: 18, dur: 14, delay:  -8, op: 0.40 },
-  { node: <MiniLine pts={LINE_PTS[2]} id="c" />, left: 50, top: 75, dur: 11, delay: -11, op: 0.38 },
-  // Donut charts
-  { node: <MiniDonut />, left: 17, top: 24, dur: 13, delay:  -2, op: 0.52 },
-  { node: <MiniDonut s1="#10b981" s2="#7c3aed" s3="#a855f7" p1={0.40} p2={0.35}/>, left: 74, top: 60, dur: 10, delay:  -8, op: 0.46 },
-  { node: <MiniDonut s1="#a855f7" s2="#6d28d9" s3="#10b981" p1={0.55} p2={0.25}/>, left: 37, top: 80, dur: 14, delay: -12, op: 0.40 },
-  // Pie charts
-  { node: <MiniPie />, left: 88, top:  5, dur: 13, delay:  -4, op: 0.46 },
-  { node: <MiniPie pcts={[0.30,0.25,0.28,0.17]} cols={['#a855f7','#7c3aed','#10b981','#6d28d9']} />, left: 35, top: 50, dur: 11, delay: -11, op: 0.42 },
-  // Amounts Q
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#c084fc', fontSize: 17 }}>Q 12,450.00</span>, left:  7, top: 16, dur:  9, delay:  -1, op: 0.70 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#a78bfa', fontSize: 17 }}>Q 48,000</span>,    left: 65, top: 30, dur: 10, delay:  -4, op: 0.65 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#c084fc', fontSize: 15 }}>Q 3,750.50</span>,  left: 20, top: 72, dur: 13, delay:  -7, op: 0.60 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#d8b4fe', fontSize: 14 }}>Q 1,250.25</span>,  left: 80, top: 48, dur: 11, delay:  -6, op: 0.58 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#e9d5ff', fontSize: 14 }}>= 62,400.00</span>, left:  1, top: 82, dur: 10, delay:  -9, op: 0.60 },
-  // Amounts $
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#34d399', fontSize: 17 }}>$ 8,290</span>,   left: 76, top: 46, dur: 11, delay:  -3, op: 0.65 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#6ee7b7', fontSize: 15 }}>$ 125,800</span>, left: 93, top: 56, dur: 12, delay:  -6, op: 0.58 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#5eead4', fontSize: 14 }}>$ 42,600.00</span>, left: 55, top: 12, dur:  9, delay:  -2, op: 0.62 },
-  // Operators / formulas
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#a78bfa', fontSize: 18 }}>÷ 1.12</span>, left: 44, top: 10, dur:  9, delay:  -5, op: 0.70 },
-  { node: <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#c084fc', fontSize: 18 }}>× 25%</span>,  left:  1, top: 38, dur: 10, delay:  -4, op: 0.65 },
-  { node: <span style={{ fontFamily: 'monospace', color: '#a78bfa', fontSize: 13, whiteSpace: 'nowrap' }}>Activo = Pasivo + Capital</span>, left:  1, top: 55, dur: 12, delay:  -3, op: 0.60 },
-  { node: <span style={{ fontFamily: 'monospace', color: '#c084fc', fontSize: 13, whiteSpace: 'nowrap' }}>ROI = Utilidad / Inversión × 100</span>, left: 70, top: 22, dur: 11, delay:  -1, op: 0.55 },
-  { node: <span style={{ fontFamily: 'monospace', color: '#e9d5ff', fontSize: 13, whiteSpace: 'nowrap' }}>Margen = Utilidad / Ventas</span>, left: 46, top: 68, dur: 13, delay: -10, op: 0.55 },
-  { node: <span style={{ fontFamily: 'monospace', color: '#34d399', fontSize: 13 }}>IVA 12%</span>, left: 42, top: 62, dur:  9, delay:  -7, op: 0.70 },
-  { node: <span style={{ fontFamily: 'monospace', color: '#c084fc', fontSize: 13 }}>ISR 25%</span>, left: 59, top: 85, dur: 11, delay: -10, op: 0.68 },
-  // Financial labels
-  { node: <span style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Balance General</span>,       left: 13, top: 58, dur: 13, delay:  -5, op: 0.65 },
-  { node: <span style={{ color: '#c084fc', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Estado de Resultados</span>,  left: 85, top: 40, dur: 11, delay: -12, op: 0.58 },
-  { node: <span style={{ color: '#34d399', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Flujo de Caja</span>,        left: 29, top: 23, dur: 10, delay:  -8, op: 0.65 },
-  { node: <span style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Cuentas por Cobrar</span>,   left: 48, top: 70, dur: 12, delay:  -2, op: 0.60 },
-  { node: <span style={{ color: '#5eead4', fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Libro de Ventas</span>,      left:  6, top: 30, dur: 11, delay:  -9, op: 0.60 },
-  // Calculator displays
-  { node: <MiniCalc val="48,750.00" />,            left: 47, top: 38, dur: 12, delay:  -8, op: 0.70 },
-  { node: <MiniCalc val="Q 3,250" lbl="TOTAL" />,  left: 26, top: 63, dur: 13, delay:  -2, op: 0.65 },
-  { node: <MiniCalc val="$ 9,840.00" lbl="ISR" />, left: 84, top: 70, dur: 10, delay: -10, op: 0.62 },
-  // Financial statements
-  { node: <MiniStatement />, left: 68, top: 76, dur: 14, delay:  -6, op: 0.55 },
-  { node: <MiniBalance />,   left: 14, top: 42, dur: 13, delay:  -4, op: 0.55 },
-  // Brand logos — no card backgrounds
-  { node: <LogoAnthropicOrb />, left:  4, top: 47, dur: 10, delay:  -2, op: 0.75 },
-  { node: <LogoAnthropicOrb />, left: 86, top: 14, dur: 13, delay:  -9, op: 0.68 },
-  { node: <LogoClaude />,       left:  3, top: 77, dur: 12, delay:  -5, op: 0.72 },
-  { node: <LogoClaude />,       left: 72, top: 54, dur: 11, delay:  -1, op: 0.68 },
-  { node: <LogoOdoo />,         left: 78, top:  8, dur: 13, delay: -11, op: 0.70 },
-  { node: <LogoOdoo />,         left:  1, top: 62, dur: 10, delay:  -6, op: 0.66 },
-  { node: <LogoFinanzIA />,     left: 51, top:  4, dur: 12, delay:  -7, op: 0.74 },
-  { node: <LogoFinanzIA />,     left: 85, top: 70, dur: 11, delay:  -3, op: 0.68 },
-];
-
-// ── Hero component ─────────────────────────────────────────────────
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouse = useRef({ x: 0, y: 0 });
-  const [cursorGlow, setCursorGlow] = useState({ x: 50, y: 50 });
+  const mouse = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const scrollRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ── Renderer ────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+    // ── Scene ────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.z = 40;
+    scene.fog = new THREE.FogExp2(0x08031a, 0.022);
 
-    const count = 3000;
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const i3 = i * 3;
-      pos[i3]     = (Math.random() - 0.5) * 140;
-      pos[i3 + 1] = (Math.random() - 0.5) * 120;
-      pos[i3 + 2] = (Math.random() - 0.5) * 100;
-      const t = Math.random();
-      const isEmerald = t > 0.88;
-      col[i3]     = isEmerald ? 0.06 : 0.35 + t * 0.45;
-      col[i3 + 1] = isEmerald ? 0.72 : 0.08 + t * 0.12;
-      col[i3 + 2] = isEmerald ? 0.50 : 0.65 + t * 0.35;
+    // ── Camera ───────────────────────────────────────────────────────
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 120);
+    const CAM_BASE = { x: 6, y: 9, z: 18 };
+    camera.position.set(CAM_BASE.x, CAM_BASE.y, CAM_BASE.z);
+    camera.lookAt(0, 2, 0);
+
+    // ── Lights ───────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0x200840, 6));
+
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    sunLight.position.set(10, 14, 8);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(1024, 1024);
+    sunLight.shadow.camera.near = 0.1;
+    sunLight.shadow.camera.far = 60;
+    sunLight.shadow.camera.left = -18;
+    sunLight.shadow.camera.right = 18;
+    sunLight.shadow.camera.top = 14;
+    sunLight.shadow.camera.bottom = -4;
+    scene.add(sunLight);
+
+    const purplePoint = new THREE.PointLight(0x9333ea, 10, 22);
+    purplePoint.position.set(-6, 8, -4);
+    scene.add(purplePoint);
+
+    const tealPoint = new THREE.PointLight(0x0d9488, 8, 20);
+    tealPoint.position.set(9, 4, 4);
+    scene.add(tealPoint);
+
+    const topFill = new THREE.PointLight(0x6d28d9, 5, 30);
+    topFill.position.set(0, 14, 6);
+    scene.add(topFill);
+
+    // Ceiling lamp lights (3 above desks)
+    const lampLights: THREE.PointLight[] = [];
+    for (const lx of [-5.5, 0, 5.5]) {
+      const l = new THREE.PointLight(0xddd8ff, 6, 9);
+      l.position.set(lx, 8.5, -1.5);
+      scene.add(l);
+      lampLights.push(l);
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const mat = new THREE.PointsMaterial({ size: 0.18, vertexColors: true, transparent: true, opacity: 0.75, sizeAttenuation: true });
-    const particles = new THREE.Points(geo, mat);
+
+    // ── Shared material helper ────────────────────────────────────────
+    const lm = (
+      color: number,
+      opts: { emissive?: number; emissiveIntensity?: number; transparent?: boolean; opacity?: number } = {}
+    ) =>
+      new THREE.MeshLambertMaterial({
+        color,
+        flatShading: true,
+        emissive: opts.emissive ?? 0,
+        emissiveIntensity: opts.emissiveIntensity ?? 0,
+        transparent: opts.transparent ?? false,
+        opacity: opts.opacity ?? 1,
+      });
+
+    // Materials
+    const mFloor    = lm(0x120830);
+    const mWall     = lm(0x0c061e);
+    const mCeiling  = lm(0x0e0824);
+    const mDeskTop  = lm(0x2e1958);
+    const mDeskLeg  = lm(0x1c1040);
+    const mDeskSide = lm(0x24144a);
+    const mMonFr    = lm(0x080615);
+    const mScrPurp  = lm(0x7c3aed, { emissive: 0x6d28d9, emissiveIntensity: 1.0 });
+    const mScrTeal  = lm(0x0d9488, { emissive: 0x065f46, emissiveIntensity: 0.8 });
+    const mChairDk  = lm(0x14102a);
+    const mChairMd  = lm(0x1e1840);
+    const mSkin     = lm(0xf4b98a);
+    const mPot      = lm(0x3a1850);
+    const mLeaf     = lm(0x065f46);
+    const mGlass    = new THREE.MeshLambertMaterial({
+      color: 0x9333ea, transparent: true, opacity: 0.22,
+      emissive: 0x5b21b6, emissiveIntensity: 0.5,
+    });
+    const mLamp     = lm(0xfafafa, { emissive: 0xffffff, emissiveIntensity: 0.9 });
+
+    // Person body colours (brand palette)
+    const BODY_COLORS = [0x7c3aed, 0x0d9488, 0x1d4ed8, 0xa855f7, 0x059669];
+
+    // ── Room shell ───────────────────────────────────────────────────
+    // Floor
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(32, 0.25, 24), mFloor);
+    floor.position.set(0, -0.12, 0);
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Floor grid overlay
+    const grid = new THREE.GridHelper(30, 30, 0x3b1c6e, 0x1c0a3a);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    // Ceiling
+    const ceiling = new THREE.Mesh(new THREE.BoxGeometry(32, 0.25, 24), mCeiling);
+    ceiling.position.set(0, 10.12, 0);
+    scene.add(ceiling);
+
+    // Back wall
+    const wallBack = new THREE.Mesh(new THREE.BoxGeometry(32, 10.5, 0.3), mWall);
+    wallBack.position.set(0, 5, -10.5);
+    wallBack.receiveShadow = true;
+    scene.add(wallBack);
+
+    // Side walls
+    const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 10.5, 24), mWall);
+    wallL.position.set(-15.15, 5, 0);
+    scene.add(wallL);
+    const wallR = new THREE.Mesh(new THREE.BoxGeometry(0.3, 10.5, 24), mWall);
+    wallR.position.set(15.15, 5, 0);
+    scene.add(wallR);
+
+    // Windows (glowing)
+    for (const wx of [-7, 0, 7]) {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(4.8, 5.8, 0.22), mMonFr);
+      frame.position.set(wx, 5.5, -10.35);
+      scene.add(frame);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(4.0, 5.0, 0.12), mGlass);
+      glass.position.set(wx, 5.5, -10.28);
+      scene.add(glass);
+    }
+
+    // Ceiling lamps
+    for (const lx of [-5.5, 0, 5.5]) {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.18, 0.9), mLamp);
+      body.position.set(lx, 9.9, -1.5);
+      scene.add(body);
+    }
+
+    // ── Desk builder ─────────────────────────────────────────────────
+    function addDesk(x: number, z: number): void {
+      const g = new THREE.Group();
+
+      // surface
+      const top = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.14, 2.2), mDeskTop);
+      top.position.y = 1.85;
+      top.castShadow = true;
+      top.receiveShadow = true;
+      g.add(top);
+
+      // legs (4 corners)
+      for (const [lx, lz] of [[-1.85, -0.95], [1.85, -0.95], [-1.85, 0.95], [1.85, 0.95]] as [number, number][]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.13, 1.85, 0.13), mDeskLeg);
+        leg.position.set(lx, 0.92, lz);
+        leg.castShadow = true;
+        g.add(leg);
+      }
+
+      // right side panel
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 2.0), mDeskSide);
+      panel.position.set(1.85, 0.92, 0);
+      g.add(panel);
+
+      // small drawer box
+      const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.95, 1.85), mDeskSide);
+      drawer.position.set(1.38, 0.58, 0);
+      g.add(drawer);
+
+      g.position.set(x, 0, z);
+      scene.add(g);
+    }
+
+    // ── Monitor builder ───────────────────────────────────────────────
+    function addMonitor(
+      x: number, y: number, z: number,
+      scrMat: THREE.MeshLambertMaterial,
+      rotY = 0
+    ): void {
+      const g = new THREE.Group();
+
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.6, 0.13), mMonFr);
+      frame.position.y = 0.8;
+      g.add(frame);
+
+      const screen = new THREE.Mesh(new THREE.BoxGeometry(2.25, 1.38, 0.06), scrMat);
+      screen.position.set(0, 0.8, 0.1);
+      g.add(screen);
+
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.55, 6), mMonFr);
+      arm.position.y = 0.14;
+      g.add(arm);
+
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.45), mMonFr);
+      base.position.y = -0.14;
+      g.add(base);
+
+      g.position.set(x, y, z);
+      g.rotation.y = rotY;
+      scene.add(g);
+    }
+
+    // ── Chair builder ─────────────────────────────────────────────────
+    function addChair(x: number, z: number, rotY = 0): void {
+      const g = new THREE.Group();
+
+      // seat
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.1, 1.25), mChairMd);
+      seat.position.y = 0.95;
+      g.add(seat);
+      const cushion = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.1, 1.12), mChairDk);
+      cushion.position.y = 1.04;
+      g.add(cushion);
+
+      // back
+      const back = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.05, 0.1), mChairMd);
+      back.position.set(0, 1.58, -0.58);
+      g.add(back);
+      const backPad = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.85, 0.08), mChairDk);
+      backPad.position.set(0, 1.58, -0.52);
+      g.add(backPad);
+
+      // 5-star base (spokes)
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.55), mChairMd);
+        spoke.position.set(Math.cos(a) * 0.44, 0.22, Math.sin(a) * 0.44);
+        spoke.rotation.y = a;
+        g.add(spoke);
+      }
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.9, 6), mChairMd);
+      col.position.y = 0.52;
+      g.add(col);
+
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY;
+      scene.add(g);
+    }
+
+    // ── Person builder ────────────────────────────────────────────────
+    function addPerson(x: number, z: number, bodyColor: number, rotY = 0): void {
+      const g = new THREE.Group();
+      const mBody = lm(bodyColor);
+
+      // head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.31, 8, 7), mSkin);
+      head.position.y = 2.88;
+      head.castShadow = true;
+      g.add(head);
+
+      // hair (upper hemisphere)
+      const hairColor = [0x1a0800, 0x2c1400, 0x0a0a0a][Math.floor(Math.random() * 3)];
+      const hair = new THREE.Mesh(
+        new THREE.SphereGeometry(0.335, 8, 5, 0, Math.PI * 2, 0, Math.PI * 0.5),
+        lm(hairColor)
+      );
+      hair.position.y = 2.9;
+      g.add(hair);
+
+      // neck
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.22, 6), mSkin);
+      neck.position.y = 2.54;
+      g.add(neck);
+
+      // torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.95, 0.4), mBody);
+      torso.position.y = 2.02;
+      torso.castShadow = true;
+      g.add(torso);
+
+      // arms angled forward (typing pose)
+      const armGeo = new THREE.BoxGeometry(0.19, 0.58, 0.2);
+      const armL = new THREE.Mesh(armGeo, mBody);
+      armL.position.set(-0.44, 2.02, 0.22);
+      armL.rotation.x = -0.55;
+      g.add(armL);
+      const armR = new THREE.Mesh(armGeo, mBody);
+      armR.position.set(0.44, 2.02, 0.22);
+      armR.rotation.x = -0.55;
+      g.add(armR);
+
+      // lower body (sitting)
+      const lower = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.52, 0.56), lm(0x12102a));
+      lower.position.y = 1.52;
+      g.add(lower);
+
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY;
+      scene.add(g);
+      return;
+    }
+
+    // ── Plant builder ─────────────────────────────────────────────────
+    function addPlant(x: number, z: number, scale = 1): void {
+      const g = new THREE.Group();
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.44, 8), mPot);
+      pot.position.y = 0.22;
+      g.add(pot);
+      const f1 = new THREE.Mesh(new THREE.SphereGeometry(0.7, 7, 5), mLeaf);
+      f1.position.y = 1.05;
+      f1.scale.set(1, 1.1, 1);
+      g.add(f1);
+      const f2 = new THREE.Mesh(new THREE.SphereGeometry(0.52, 6, 5), mLeaf);
+      f2.position.set(0.52, 0.9, 0.1);
+      g.add(f2);
+      const f3 = new THREE.Mesh(new THREE.SphereGeometry(0.44, 6, 5), mLeaf);
+      f3.position.set(-0.42, 0.95, 0.18);
+      g.add(f3);
+      g.scale.setScalar(scale);
+      g.position.set(x, 0, z);
+      scene.add(g);
+    }
+
+    // ── Build office ──────────────────────────────────────────────────
+    const DESK_Z = -1.5;
+
+    for (let i = 0; i < 3; i++) {
+      const dx = (i - 1) * 5.8;
+
+      addDesk(dx, DESK_Z);
+
+      // monitor on desk surface
+      const scrMat = i === 1 ? mScrTeal : mScrPurp;
+      const rotY   = i === 0 ? 0.08 : i === 2 ? -0.08 : 0;
+      addMonitor(dx - 0.15, 1.87, DESK_Z - 0.85, scrMat, rotY);
+
+      // chair (behind desk, between desk and camera)
+      addChair(dx, DESK_Z + 1.45, 0);
+
+      // person sitting (facing monitor = facing -z → rotY = Math.PI)
+      addPerson(dx, DESK_Z + 0.75, BODY_COLORS[i], Math.PI);
+    }
+
+    // Plants
+    addPlant(-12.5, -4, 1.1);
+    addPlant(12.5, -4, 1.1);
+    addPlant(-12.5, -8, 0.85);
+    addPlant(12.5, -8, 0.85);
+    addPlant(-12.5, 5, 0.9);
+
+    // Small desk accessories (keyboards as flat boxes)
+    for (let i = 0; i < 3; i++) {
+      const dx = (i - 1) * 5.8;
+      const kb = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.06, 0.55), mDeskSide);
+      kb.position.set(dx - 0.1, 1.94, DESK_Z + 0.4);
+      scene.add(kb);
+    }
+
+    // ── Floating particles ────────────────────────────────────────────
+    const pCount = 500;
+    const pGeo   = new THREE.BufferGeometry();
+    const pPos   = new Float32Array(pCount * 3);
+    const pCol   = new Float32Array(pCount * 3);
+    for (let i = 0; i < pCount; i++) {
+      const i3 = i * 3;
+      pPos[i3]     = (Math.random() - 0.5) * 28;
+      pPos[i3 + 1] = Math.random() * 10;
+      pPos[i3 + 2] = (Math.random() - 0.5) * 18 - 1;
+      const isPurp = Math.random() > 0.45;
+      pCol[i3]     = isPurp ? 0.6 : 0.05;
+      pCol[i3 + 1] = isPurp ? 0.1 : 0.72;
+      pCol[i3 + 2] = isPurp ? 1.0 : 0.52;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    pGeo.setAttribute('color',    new THREE.BufferAttribute(pCol, 3));
+    const pMat = new THREE.PointsMaterial({
+      size: 0.07, vertexColors: true, transparent: true,
+      opacity: 0.85, sizeAttenuation: true,
+    });
+    const particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    const shapes: { mesh: THREE.Mesh; rx: number; ry: number }[] = [];
-    const wireMat  = new THREE.MeshBasicMaterial({ color: 0x9333ea, wireframe: true, transparent: true, opacity: 0.1 });
-    const wireMat2 = new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true, transparent: true, opacity: 0.08 });
-    const geos = [
-      new THREE.IcosahedronGeometry(2, 0), new THREE.OctahedronGeometry(1.5, 0),
-      new THREE.TetrahedronGeometry(2, 0), new THREE.IcosahedronGeometry(1, 1),
+    // ── Floating holographic data panels ─────────────────────────────
+    const panelMats = [
+      new THREE.MeshLambertMaterial({ color: 0x7c3aed, emissive: 0x7c3aed, emissiveIntensity: 0.6, transparent: true, opacity: 0.55 }),
+      new THREE.MeshLambertMaterial({ color: 0x0d9488, emissive: 0x0d9488, emissiveIntensity: 0.5, transparent: true, opacity: 0.45 }),
     ];
-    for (let i = 0; i < 10; i++) {
-      const mesh = new THREE.Mesh(geos[i % geos.length], i % 5 === 0 ? wireMat2 : wireMat);
-      mesh.scale.setScalar(0.8 + Math.random() * 2.5);
-      mesh.position.set((Math.random()-0.5)*100, (Math.random()-0.5)*80, (Math.random()-0.5)*60-10);
-      mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
-      shapes.push({ mesh, rx: (Math.random()-0.5)*0.004, ry: (Math.random()-0.5)*0.006 });
+    const floatPanels: { mesh: THREE.Mesh; baseY: number; speed: number; phase: number }[] = [];
+    const panelConfigs = [
+      { x: -10,  y: 5.5, z: -6,   mat: 0, w: 2.0, h: 1.3, ry: 0.25  },
+      { x:  9.5, y: 4.5, z: -5,   mat: 1, w: 1.6, h: 1.1, ry: -0.22 },
+      { x: -8.5, y: 7.5, z: -4,   mat: 0, w: 1.4, h: 0.9, ry: 0.18  },
+      { x:  10,  y: 6.5, z: -3,   mat: 1, w: 1.8, h: 1.2, ry: -0.15 },
+      { x:  2.5, y: 8.0, z: -7.5, mat: 0, w: 2.2, h: 1.4, ry: 0.05  },
+      { x: -3.0, y: 6.8, z: -8,   mat: 1, w: 1.5, h: 1.0, ry: -0.08 },
+    ];
+    for (const cfg of panelConfigs) {
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(cfg.w, cfg.h), panelMats[cfg.mat]);
+      mesh.position.set(cfg.x, cfg.y, cfg.z);
+      mesh.rotation.y = cfg.ry;
       scene.add(mesh);
+      floatPanels.push({ mesh, baseY: cfg.y, speed: 0.4 + Math.random() * 0.4, phase: Math.random() * Math.PI * 2 });
     }
 
-    const handleMouseMove = (e: MouseEvent) => {
-      mouse.current.x = (e.clientX / window.innerWidth - 0.5) * 2;
-      mouse.current.y = -(e.clientY / window.innerHeight - 0.5) * 2;
-      setCursorGlow({ x: e.clientX, y: e.clientY });
+    // ── Events ───────────────────────────────────────────────────────
+    const onMouseMove = (e: MouseEvent) => {
+      mouse.current.tx = (e.clientX / window.innerWidth - 0.5);
+      mouse.current.ty = -(e.clientY / window.innerHeight - 0.5);
     };
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', onMouseMove);
 
-    let frame = 0;
+    const onScroll = () => { scrollRef.current = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // ── Animation loop ────────────────────────────────────────────────
     let animId: number;
+    let t = 0;
+
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      frame++;
-      const t = frame * 0.001;
-      particles.rotation.y = t * 0.04;
-      particles.rotation.x = t * 0.015;
-      shapes.forEach(({ mesh, rx, ry }) => { mesh.rotation.x += rx; mesh.rotation.y += ry; });
-      camera.position.x += (mouse.current.x * 8 - camera.position.x) * 0.035;
-      camera.position.y += (mouse.current.y * 6 - camera.position.y) * 0.035;
+      t += 0.012;
+
+      // Smooth mouse lerp
+      mouse.current.x += (mouse.current.tx - mouse.current.x) * 0.045;
+      mouse.current.y += (mouse.current.ty - mouse.current.y) * 0.045;
+
+      // Scroll-based camera pull-back
+      const heroEl = document.getElementById('hero');
+      const heroH  = heroEl?.offsetHeight ?? window.innerHeight;
+      const sf = Math.min(scrollRef.current / heroH, 1);
+
+      camera.position.x = CAM_BASE.x + mouse.current.x * 3.8;
+      camera.position.y = CAM_BASE.y + mouse.current.y * 2.2 - sf * 5;
+      camera.position.z = CAM_BASE.z + sf * 14;
+      camera.lookAt(
+        mouse.current.x * 1.0,
+        2,
+        0,
+      );
+
+      // Gentle particle drift
+      particles.rotation.y = t * 0.018;
+      particles.position.y = Math.sin(t * 0.28) * 0.18;
+
+      // Floating panels
+      for (const fp of floatPanels) {
+        fp.mesh.position.y = fp.baseY + Math.sin(t * fp.speed + fp.phase) * 0.28;
+      }
+
+      // Pulsing lights
+      purplePoint.intensity = 10 + Math.sin(t * 1.4) * 2.5;
+      tealPoint.intensity   = 8  + Math.sin(t * 1.1 + 1.2) * 2;
+      for (const ll of lampLights) {
+        ll.intensity = 6 + Math.sin(t * 2.0 + ll.position.x) * 0.4;
+      }
+
       renderer.render(scene, camera);
     };
     animate();
 
-    const handleResize = () => {
+    const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', onResize);
+
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
       renderer.dispose();
     };
   }, []);
 
   return (
-    <section id="hero-section" className="relative h-screen flex items-center justify-center overflow-hidden bg-gray-950">
+    <section id="hero" className="relative h-screen flex items-center overflow-hidden bg-[#08031a]">
 
       {/* Three.js canvas */}
-      <canvas ref={canvasRef} className="hero-canvas absolute inset-0 w-full h-full" />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-      {/* ── Floating financial elements ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
-        {FITEMS.map((item, i) => (
-          /* Outer div: position + opacity cap (not animated) */
-          <div key={i} className="absolute" style={{ left: `${item.left}%`, top: `${item.top}%`, opacity: item.op }}>
-            {/* Inner div: animation only — keyframes control opacity 0→1→1→0 */}
-            <div style={{
-              animation: `floatItem ${item.dur}s ease-in-out ${item.delay}s infinite`,
-              willChange: 'transform, opacity',
-            }}>
-              {item.node}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Gradient overlays */}
-      <div className="hero-grad-b absolute inset-0 pointer-events-none" style={{ zIndex: 8 }} />
-      <div className="hero-grad-r absolute inset-0 pointer-events-none" style={{ zIndex: 8 }} />
-      {/* Center vignette */}
-      <div className="hero-vignette absolute inset-0 pointer-events-none" style={{ zIndex: 9 }} />
-
-      {/* Cursor glow */}
+      {/* Left-side dark gradient so text is readable */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          zIndex: 10,
-          background: `radial-gradient(500px circle at ${cursorGlow.x}px ${cursorGlow.y}px, rgba(147,51,234,0.055), transparent 70%)`,
+          zIndex: 5,
+          background:
+            'linear-gradient(105deg, rgba(8,3,26,0.92) 0%, rgba(8,3,26,0.70) 38%, rgba(8,3,26,0.18) 62%, transparent 100%)',
         }}
       />
 
-      {/* Hero content */}
-      <div className="relative text-center px-4 max-w-4xl mx-auto" style={{ zIndex: 20 }}>
-        <div className="flex justify-center mb-8 animate-fade-in">
-          <img src="/K_white.png" alt="KONTAXES" className="logo-dark h-20 w-auto drop-shadow-[0_0_40px_rgba(147,51,234,0.55)]" />
-          <img src="/K_black.png" alt="KONTAXES" className="logo-light h-20 w-auto" />
+      {/* Bottom fade into page */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
+        style={{ zIndex: 5, background: 'linear-gradient(to top, #08031a 0%, transparent 100%)' }}
+      />
+
+      {/* Purple cursor glow — tracked via CSS custom property alternative (static) */}
+
+      {/* ── Hero content ── */}
+      <div className="relative px-8 md:px-14 lg:px-20 max-w-[44rem]" style={{ zIndex: 20 }}>
+
+        {/* Logo */}
+        <div className="mb-7">
+          <img
+            src="/K_white.png"
+            alt="KONTAXES"
+            className="h-16 w-auto drop-shadow-[0_0_36px_rgba(147,51,234,0.65)]"
+          />
         </div>
 
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 animate-fade-in"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {/* Tag line */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-semibold tracking-widest uppercase mb-5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Consultores Financieros & Fiscales
+        </div>
+
+        {/* Title */}
+        <h1
+          className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-5 leading-[1.08]"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
           de{' '}
-          <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-purple-400 bg-clip-text text-transparent">números</span>
-          {' '}a{' '}
-          <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">decisiones</span>
+          <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-purple-400 bg-clip-text text-transparent">
+            números
+          </span>
+          <br />
+          a{' '}
+          <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
+            decisiones
+          </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-gray-400 max-w-xl mx-auto mb-10 animate-fade-in">
+        {/* Subtitle */}
+        <p className="text-base md:text-lg text-gray-400 mb-9 max-w-md leading-relaxed">
           Contabilidad · Impuestos · Asesoría · Consultoría
         </p>
+
+        {/* CTA buttons */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-xl text-sm
+              hover:from-purple-500 hover:to-violet-500 transition-all duration-200
+              shadow-lg shadow-purple-900/40 hover:-translate-y-0.5 hover:shadow-purple-500/30"
+          >
+            Ver Servicios
+          </button>
+          <button
+            onClick={() => document.getElementById('cotizador')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-3 bg-white/8 border border-white/15 backdrop-blur-sm text-white font-bold rounded-xl text-sm
+              hover:bg-white/14 hover:border-white/25 transition-all duration-200 hover:-translate-y-0.5"
+          >
+            Cotizar Ahora
+          </button>
+        </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-600 text-xs tracking-widest uppercase pointer-events-none" style={{ zIndex: 20 }}>
+      <div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-500 text-xs tracking-widest uppercase pointer-events-none"
+        style={{ zIndex: 20 }}
+      >
         <div className="w-5 h-8 border border-white/15 rounded-full flex justify-center pt-1.5">
           <div className="w-0.5 h-2 bg-purple-400 rounded-full animate-bounce" />
         </div>
