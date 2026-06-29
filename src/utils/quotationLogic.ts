@@ -282,7 +282,7 @@ export function calculateOutsourcingQuotation(data: QuotationData): QuotationRes
   const supervision = 800;
 
   const subtotal      = salary + prestaciones + supervision;
-  const fee           = round2(subtotal * 0.15);
+  const fee           = round2(subtotal * 0.20);
   const subtotalFee   = round2(subtotal + fee);
   const iva           = round2(subtotalFee * 0.12);
   const total         = round2(subtotalFee + iva);
@@ -303,7 +303,7 @@ export function calculateOutsourcingQuotation(data: QuotationData): QuotationRes
       cost: supervision,
       note: '1 visita semanal × Q200 c/u',
     },
-    { item: 'FEE del servicio (15%)', cost: fee },
+    { item: 'FEE del servicio (20%)', cost: fee },
     { item: 'IVA (12%)',              cost: iva },
   ];
 
