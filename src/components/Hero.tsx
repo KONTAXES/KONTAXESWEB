@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -10,8 +11,6 @@ import gsap from 'gsap';
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouse     = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  const scrollRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -25,44 +24,59 @@ export function Hero() {
     renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace  = THREE.SRGBColorSpace;
     renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.85;
+    renderer.toneMappingExposure = 0.9;
 
     // ── Scene & environment ───────────────────────────────────────────
     const scene = new THREE.Scene();
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.3;
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.35;
     pmrem.dispose();
 
     // ── Camera ────────────────────────────────────────────────────────
-    // Target: model centered in the right half of the screen
-    const LOOK = new THREE.Vector3(3, 2, 0);
-    const CAM  = { x: -1.0, y: 5.0, z: 16 };
-    const cam  = { x: CAM.x, y: 13, z: 32 };
-
     const camera = new THREE.PerspectiveCamera(
-      40, window.innerWidth / window.innerHeight, 0.1, 140
+      42, window.innerWidth / window.innerHeight, 0.1, 140
     );
-    camera.position.set(cam.x, cam.y, cam.z);
-    camera.lookAt(LOOK);
+    camera.position.set(2, 5, 16);
+    camera.lookAt(3, 2, 0);
+
+    // ── OrbitControls (mouse drag to rotate) ─────────────────────────
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(3, 2, 0);
+    controls.enableDamping    = true;
+    controls.dampingFactor    = 0.06;
+    controls.enablePan        = false;
+    controls.minDistance      = 8;
+    controls.maxDistance      = 28;
+    controls.minPolarAngle    = Math.PI / 6;   // 30° — no va por encima
+    controls.maxPolarAngle    = Math.PI / 2.1; // 85° — no va por debajo del piso
+    controls.autoRotate       = true;
+    controls.autoRotateSpeed  = 0.5;
+
+    // Stop autoRotate when user interacts, resume after 3 s idle
+    let idleTimer: ReturnType<typeof setTimeout>;
+    const onInteract = () => {
+      controls.autoRotate = false;
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => { controls.autoRotate = true; }, 3000);
+    };
+    canvas.addEventListener('pointerdown', onInteract);
 
     // ── Post-processing ───────────────────────────────────────────────
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.08, 0.4, 0.95
+      0.06, 0.4, 0.96
     );
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
 
     // ── Lighting ──────────────────────────────────────────────────────
-    // Soft ambient
-    scene.add(new THREE.HemisphereLight(0xfff8e7, 0x14082e, 0.5));
+    scene.add(new THREE.HemisphereLight(0xfff8e7, 0x14082e, 0.55));
 
-    // Key light — warm, top right
-    const key = new THREE.DirectionalLight(0xffecd0, 2.2);
-    key.position.set(10, 16, 10);
+    const key = new THREE.DirectionalLight(0xffecd0, 2.0);
+    key.position.set(10, 15, 10);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     key.shadow.camera.left   = -12;
@@ -74,13 +88,11 @@ export function Hero() {
     key.shadow.bias          = -0.0004;
     scene.add(key);
 
-    // Fill — cool, from left
-    const fill = new THREE.DirectionalLight(0xc4d8ff, 0.6);
+    const fill = new THREE.DirectionalLight(0xc4d8ff, 0.55);
     fill.position.set(-10, 8, 6);
     scene.add(fill);
 
-    // Subtle back rim
-    const rim = new THREE.DirectionalLight(0xb06aff, 0.45);
+    const rim = new THREE.DirectionalLight(0xb06aff, 0.4);
     rim.position.set(-10, 2, -14);
     scene.add(rim);
 
@@ -94,7 +106,7 @@ export function Hero() {
         clearcoat: 1.0,
         clearcoatRoughness: 0.04,
         reflectivity: 0.9,
-        envMapIntensity: 0.8,
+        envMapIntensity: 0.7,
       })
     );
     floor.rotation.x  = -Math.PI / 2;
@@ -106,84 +118,65 @@ export function Hero() {
     const group = new THREE.Group();
     scene.add(group);
     group.position.y = -12;
-    group.rotation.y  = 0.35;
+    group.rotation.y  = 0.3;
 
     new GLTFLoader().load(
       '/models/little_office.glb',
       (gltf) => {
         const model = gltf.scene;
 
-        // Scale: target height = 5.5 units
+        // Scale to target height 5.5 units
         const box = new THREE.Box3().setFromObject(model);
         const sz  = new THREE.Vector3();
         box.getSize(sz);
         const scale = 5.5 / sz.y;
         model.scale.setScalar(scale);
 
-        // Center on X/Z; bottom sits on floor; offset right so it occupies right half
+        // Center + offset right
         box.setFromObject(model);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        model.position.x = -center.x + 3.5;   // offset to right half
+        model.position.x = -center.x + 3.5;
         model.position.z = -center.z;
         model.position.y = -box.min.y;
 
-        // Shadows + material tweaks
+        // Fix materials: kill the overbright emissive, keep diffuse colors
         model.traverse((child) => {
           if (!(child instanceof THREE.Mesh)) return;
           child.castShadow    = true;
           child.receiveShadow = true;
+
           const mats = Array.isArray(child.material) ? child.material : [child.material];
           mats.forEach((m) => {
-            if (m instanceof THREE.MeshStandardMaterial) {
-              m.roughness        = Math.max(m.roughness, 0.55);
-              m.envMapIntensity  = 0.35;
-              m.needsUpdate      = true;
-            }
+            if (!(m instanceof THREE.MeshStandardMaterial)) return;
+            // The emissiveFactor 0.87 is washing everything white — kill it
+            m.emissive.set(0x000000);
+            m.emissiveIntensity = 0;
+            m.emissiveMap       = null;
+            // Reasonable PBR values
+            m.roughness         = 0.7;
+            m.envMapIntensity   = 0.4;
+            m.needsUpdate       = true;
           });
         });
 
         group.add(model);
 
         // Entrance animation
-        const tl = gsap.timeline({ delay: 0.1 });
-        tl.to(group.position, { y: 0,     duration: 2.2, ease: 'back.out(1.2)' }, 0);
-        tl.to(group.rotation, { y: 0,     duration: 2.0, ease: 'power3.out'    }, 0);
-        tl.to(cam,            { y: CAM.y, z: CAM.z, duration: 2.6, ease: 'power3.out' }, 0);
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.to(group.position, { y: 0,   duration: 2.2, ease: 'back.out(1.2)' }, 0);
+        tl.to(group.rotation, { y: 0,   duration: 2.0, ease: 'power3.out'    }, 0);
       },
       undefined,
       (err) => console.error('GLB load error:', err)
     );
-
-    // ── Events ────────────────────────────────────────────────────────
-    const onMove = (e: MouseEvent) => {
-      mouse.current.tx =  (e.clientX  / window.innerWidth  - 0.5);
-      mouse.current.ty = -(e.clientY  / window.innerHeight - 0.5);
-    };
-    window.addEventListener('mousemove', onMove);
-    const onScroll = () => { scrollRef.current = window.scrollY; };
-    window.addEventListener('scroll', onScroll, { passive: true });
 
     // ── Render loop ───────────────────────────────────────────────────
     let animId: number;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-
-      mouse.current.x += (mouse.current.tx - mouse.current.x) * 0.044;
-      mouse.current.y += (mouse.current.ty - mouse.current.y) * 0.044;
-
-      const sf = Math.min(scrollRef.current / (window.innerHeight || 1), 1);
-
-      camera.position.x = cam.x + mouse.current.x * 3.2;
-      camera.position.y = cam.y + mouse.current.y * 1.8 - sf * 3.5;
-      camera.position.z = cam.z + sf * 12;
-      camera.lookAt(
-        LOOK.x + mouse.current.x * 0.6,
-        LOOK.y + mouse.current.y * 0.4,
-        LOOK.z
-      );
-
+      controls.update();
       composer.render();
     };
     animate();
@@ -198,9 +191,10 @@ export function Hero() {
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('scroll',    onScroll);
-      window.removeEventListener('resize',    onResize);
+      clearTimeout(idleTimer);
+      canvas.removeEventListener('pointerdown', onInteract);
+      window.removeEventListener('resize', onResize);
+      controls.dispose();
       renderer.dispose();
     };
   }, []);
@@ -208,11 +202,11 @@ export function Hero() {
   return (
     <section id="hero" className="relative h-screen flex items-center overflow-hidden bg-[#08031a]">
 
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ cursor: 'grab' }} />
 
-      {/* Left gradient so text is readable */}
+      {/* Left gradient */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5,
-        background: 'linear-gradient(108deg, rgba(8,3,26,0.96) 0%, rgba(8,3,26,0.75) 36%, rgba(8,3,26,0.10) 58%, transparent 100%)',
+        background: 'linear-gradient(108deg, rgba(8,3,26,0.96) 0%, rgba(8,3,26,0.78) 36%, rgba(8,3,26,0.08) 58%, transparent 100%)',
       }} />
 
       {/* Bottom fade */}
@@ -220,8 +214,8 @@ export function Hero() {
         background: 'linear-gradient(to top, #08031a 0%, transparent 100%)',
       }} />
 
-      {/* Text overlay */}
-      <div className="relative px-8 md:px-14 lg:px-20 max-w-[44rem]" style={{ zIndex: 20 }}>
+      {/* Text — pointer-events-none on overlay so mouse reaches canvas */}
+      <div className="relative px-8 md:px-14 lg:px-20 max-w-[44rem] pointer-events-none" style={{ zIndex: 20 }}>
 
         <div className="mb-7">
           <img src="/K_white.png" alt="KONTAXES"
@@ -252,7 +246,8 @@ export function Hero() {
           Contabilidad · Impuestos · Asesoría · Consultoría
         </p>
 
-        <div className="flex flex-wrap gap-3">
+        {/* Buttons need pointer-events back */}
+        <div className="flex flex-wrap gap-3 pointer-events-auto">
           <button
             onClick={() => document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth' })}
             className="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold rounded-xl text-sm
@@ -269,6 +264,11 @@ export function Hero() {
             Cotizar Ahora
           </button>
         </div>
+      </div>
+
+      {/* Hint */}
+      <div className="absolute bottom-8 right-8 text-white/20 text-xs pointer-events-none select-none" style={{ zIndex: 20 }}>
+        arrastra para rotar
       </div>
 
       {/* Scroll indicator */}
