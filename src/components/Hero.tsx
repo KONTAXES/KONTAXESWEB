@@ -6,7 +6,6 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import gsap from 'gsap';
 
 export function Hero() {
@@ -18,8 +17,6 @@ export function Hero() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    RectAreaLightUniformsLib.init();
-
     // ── Renderer ──────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -28,257 +25,131 @@ export function Hero() {
     renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace  = THREE.SRGBColorSpace;
     renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 0.85;
 
     // ── Scene & environment ───────────────────────────────────────────
     const scene = new THREE.Scene();
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.6;
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.3;
     pmrem.dispose();
 
     // ── Camera ────────────────────────────────────────────────────────
+    // Target: model centered in the right half of the screen
+    const LOOK = new THREE.Vector3(3, 2, 0);
+    const CAM  = { x: -1.0, y: 5.0, z: 16 };
+    const cam  = { x: CAM.x, y: 13, z: 32 };
+
     const camera = new THREE.PerspectiveCamera(
       40, window.innerWidth / window.innerHeight, 0.1, 140
     );
-    const CAM = { x: 6.0, y: 5.5, z: 16 };
-    const cam = { x: CAM.x, y: 14, z: 32 };
     camera.position.set(cam.x, cam.y, cam.z);
-    camera.lookAt(0, 2, 0);
+    camera.lookAt(LOOK);
 
     // ── Post-processing ───────────────────────────────────────────────
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.22, 0.5, 0.88
+      0.08, 0.4, 0.95
     );
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
 
     // ── Lighting ──────────────────────────────────────────────────────
-    scene.add(new THREE.HemisphereLight(0xfff8e7, 0x140828, 0.8));
+    // Soft ambient
+    scene.add(new THREE.HemisphereLight(0xfff8e7, 0x14082e, 0.5));
 
-    // Key light (warm, top-right)
-    const key = new THREE.DirectionalLight(0xffecd0, 3.4);
-    key.position.set(12, 18, 10);
+    // Key light — warm, top right
+    const key = new THREE.DirectionalLight(0xffecd0, 2.2);
+    key.position.set(10, 16, 10);
     key.castShadow = true;
-    key.shadow.mapSize.set(4096, 4096);
-    key.shadow.camera.left   = -18;
-    key.shadow.camera.right  =  18;
-    key.shadow.camera.top    =  14;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.left   = -12;
+    key.shadow.camera.right  =  12;
+    key.shadow.camera.top    =  10;
     key.shadow.camera.bottom = -4;
-    key.shadow.camera.far    = 70;
-    key.shadow.radius        = 5;
+    key.shadow.camera.far    = 60;
+    key.shadow.radius        = 4;
     key.shadow.bias          = -0.0004;
     scene.add(key);
 
-    // Fill (cool, from left)
-    const fill = new THREE.DirectionalLight(0xc4d8ff, 1.1);
-    fill.position.set(-12, 9, 7);
+    // Fill — cool, from left
+    const fill = new THREE.DirectionalLight(0xc4d8ff, 0.6);
+    fill.position.set(-10, 8, 6);
     scene.add(fill);
 
-    // Rim (purple brand, back-left)
-    const rimPurple = new THREE.DirectionalLight(0xb06aff, 0.9);
-    rimPurple.position.set(-14, 3, -16);
-    scene.add(rimPurple);
-
-    // RectArea ceiling panels — soft area light
-    for (const rx of [-5.5, 0, 5.5]) {
-      const rl = new THREE.RectAreaLight(0xfff5e0, 6.0, 5, 3);
-      rl.position.set(rx, 9.5, -1.5);
-      rl.rotation.x = -Math.PI / 2;
-      scene.add(rl);
-    }
-
-    // Purple window area light
-    const winLight = new THREE.RectAreaLight(0x9333ea, 2.5, 18, 7);
-    winLight.position.set(0, 5, -10);
-    winLight.lookAt(0, 2, 0);
-    scene.add(winLight);
+    // Subtle back rim
+    const rim = new THREE.DirectionalLight(0xb06aff, 0.45);
+    rim.position.set(-10, 2, -14);
+    scene.add(rim);
 
     // ── Polished floor ────────────────────────────────────────────────
-    const floorMat = new THREE.MeshPhysicalMaterial({
-      color: 0x07021a,
-      roughness: 0.06,
-      metalness: 0.0,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.03,
-      reflectivity: 0.95,
-      envMapIntensity: 1.1,
-    });
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 45), floorMat);
-    floor.rotation.x = -Math.PI / 2;
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(50, 40),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x07021a,
+        roughness: 0.08,
+        metalness: 0.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
+        reflectivity: 0.9,
+        envMapIntensity: 0.8,
+      })
+    );
+    floor.rotation.x  = -Math.PI / 2;
     floor.position.y  = -0.01;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Subtle grid accent lines
-    const lineMat = new THREE.MeshBasicMaterial({
-      color: 0x4c1d95, transparent: true, opacity: 0.14,
-    });
-    for (let gx = -20; gx <= 20; gx += 5) {
-      const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 40), lineMat);
-      ln.rotation.x = -Math.PI / 2;
-      ln.position.set(gx, 0.002, 0);
-      scene.add(ln);
-    }
-    for (let gz = -20; gz <= 20; gz += 5) {
-      const ln = new THREE.Mesh(new THREE.PlaneGeometry(50, 0.02), lineMat);
-      ln.rotation.x = -Math.PI / 2;
-      ln.position.set(0, 0.002, gz);
-      scene.add(ln);
-    }
+    // ── Load GLB ──────────────────────────────────────────────────────
+    const group = new THREE.Group();
+    scene.add(group);
+    group.position.y = -12;
+    group.rotation.y  = 0.35;
 
-    // ── Back wall & windows ───────────────────────────────────────────
-    const wallMat = new THREE.MeshStandardMaterial({
-      color: 0x0e0820, roughness: 0.99, envMapIntensity: 0,
-    });
-    const wallB = new THREE.Mesh(new THREE.BoxGeometry(36, 12, 0.24), wallMat);
-    wallB.position.set(0, 6, -11);
-    wallB.receiveShadow = true;
-    scene.add(wallB);
-    const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 12, 26), wallMat);
-    wallL.position.set(-15, 6, 0);
-    scene.add(wallL);
-    const wallR = wallL.clone();
-    wallR.position.x = 15;
-    scene.add(wallR);
-    const ceil = new THREE.Mesh(
-      new THREE.BoxGeometry(36, 0.22, 26),
-      new THREE.MeshStandardMaterial({ color: 0x0c0618, roughness: 0.99, envMapIntensity: 0 })
-    );
-    ceil.position.set(0, 10.1, 0);
-    scene.add(ceil);
-
-    // Windows
-    for (const wx of [-7, 0, 7]) {
-      const frame = new THREE.Mesh(
-        new THREE.BoxGeometry(5.4, 6.4, 0.2),
-        new THREE.MeshPhysicalMaterial({ color: 0x0d0b1e, roughness: 0.5, metalness: 0.1, clearcoat: 0.2 })
-      );
-      frame.position.set(wx, 5.8, -10.88);
-      scene.add(frame);
-      const glass = new THREE.Mesh(
-        new THREE.BoxGeometry(4.5, 5.5, 0.08),
-        new THREE.MeshPhysicalMaterial({
-          color: 0x9333ea, transparent: true, opacity: 0.16,
-          emissive: 0x7c3aed, emissiveIntensity: 0.7,
-          roughness: 0.0, transmission: 0.6,
-        })
-      );
-      glass.position.set(wx, 5.8, -10.8);
-      scene.add(glass);
-      // Dividers
-      const hBar = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.07, 0.15),
-        new THREE.MeshPhysicalMaterial({ color: 0x160e34, roughness: 0.7, clearcoat: 0.1 }));
-      hBar.position.set(wx, 5.8, -10.75);
-      scene.add(hBar);
-      const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 5.5, 0.15),
-        new THREE.MeshPhysicalMaterial({ color: 0x160e34, roughness: 0.7, clearcoat: 0.1 }));
-      vBar.position.set(wx, 5.8, -10.75);
-      scene.add(vBar);
-    }
-
-    // ── Floating particles ─────────────────────────────────────────────
-    const pCount = 420;
-    const pGeo   = new THREE.BufferGeometry();
-    const pPos   = new Float32Array(pCount * 3);
-    const pCol   = new Float32Array(pCount * 3);
-    for (let i = 0; i < pCount; i++) {
-      const i3 = i * 3;
-      pPos[i3]     = (Math.random() - 0.5) * 28;
-      pPos[i3 + 1] = Math.random() * 11;
-      pPos[i3 + 2] = (Math.random() - 0.5) * 22 - 1;
-      const p = Math.random() > 0.42;
-      pCol[i3]     = p ? 0.58 : 0.06;
-      pCol[i3 + 1] = p ? 0.10 : 0.80;
-      pCol[i3 + 2] = p ? 0.98 : 0.54;
-    }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    pGeo.setAttribute('color',    new THREE.BufferAttribute(pCol, 3));
-    const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-      size: 0.055, vertexColors: true, transparent: true, opacity: 0.68,
-    }));
-    scene.add(particles);
-
-    // ── Floating data panels ──────────────────────────────────────────
-    const panelCfg = [
-      { x: -10,  y: 5.6, z: -6,  ry:  0.28, c: 0x9333ea },
-      { x:  10,  y: 4.9, z: -5,  ry: -0.22, c: 0x0d9488 },
-      { x: -8.5, y: 7.6, z: -4,  ry:  0.18, c: 0x9333ea },
-      { x:  9.5, y: 6.6, z: -3,  ry: -0.16, c: 0x0d9488 },
-      { x:  2.5, y: 8.2, z: -7,  ry:  0.05, c: 0x9333ea },
-    ];
-    type PanelItem = { mesh: THREE.Mesh; baseY: number; spd: number; ph: number };
-    const panels: PanelItem[] = [];
-    for (const cfg of panelCfg) {
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.2, 1.4),
-        new THREE.MeshStandardMaterial({
-          color: cfg.c, emissive: cfg.c, emissiveIntensity: 0.75,
-          transparent: true, opacity: 0.46, roughness: 0.12,
-        })
-      );
-      mesh.position.set(cfg.x, cfg.y, cfg.z);
-      mesh.rotation.y = cfg.ry;
-      scene.add(mesh);
-      panels.push({ mesh, baseY: cfg.y, spd: 0.34 + Math.random() * 0.36, ph: Math.random() * Math.PI * 2 });
-    }
-
-    // ── Load GLB model ─────────────────────────────────────────────────
-    const officeGroup = new THREE.Group();
-    scene.add(officeGroup);
-
-    // Entrance state — will animate on load
-    officeGroup.position.y = -10;
-    officeGroup.rotation.y  = 0.35;
-
-    const loader = new GLTFLoader();
-    loader.load(
+    new GLTFLoader().load(
       '/models/little_office.glb',
       (gltf) => {
         const model = gltf.scene;
 
-        // Auto-scale: target height = 5.5 units
-        const box  = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const scale = 5.5 / size.y;
+        // Scale: target height = 5.5 units
+        const box = new THREE.Box3().setFromObject(model);
+        const sz  = new THREE.Vector3();
+        box.getSize(sz);
+        const scale = 5.5 / sz.y;
         model.scale.setScalar(scale);
 
-        // Center on X/Z, sit on floor
+        // Center on X/Z; bottom sits on floor; offset right so it occupies right half
         box.setFromObject(model);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        model.position.x = -center.x;
+        model.position.x = -center.x + 3.5;   // offset to right half
         model.position.z = -center.z;
         model.position.y = -box.min.y;
 
-        // Improve materials & enable shadows
+        // Shadows + material tweaks
         model.traverse((child) => {
           if (!(child instanceof THREE.Mesh)) return;
           child.castShadow    = true;
           child.receiveShadow = true;
-
           const mats = Array.isArray(child.material) ? child.material : [child.material];
-          mats.forEach((mat) => {
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              // Boost roughness slightly for matte look; keep original textures
-              mat.roughness    = Math.max(mat.roughness, 0.55);
-              mat.envMapIntensity = 0.5;
-              mat.needsUpdate  = true;
+          mats.forEach((m) => {
+            if (m instanceof THREE.MeshStandardMaterial) {
+              m.roughness        = Math.max(m.roughness, 0.55);
+              m.envMapIntensity  = 0.35;
+              m.needsUpdate      = true;
             }
           });
         });
 
-        officeGroup.add(model);
+        group.add(model);
 
-        // ── Entrance animation (GSAP) — starts after model is ready ───
+        // Entrance animation
         const tl = gsap.timeline({ delay: 0.1 });
-        tl.to(officeGroup.position, { y: 0,     duration: 2.2, ease: 'back.out(1.2)'  }, 0);
-        tl.to(officeGroup.rotation, { y: 0,     duration: 2.0, ease: 'power3.out'     }, 0);
-        tl.to(cam,                  { y: CAM.y, z: CAM.z, duration: 2.6, ease: 'power3.out' }, 0);
+        tl.to(group.position, { y: 0,     duration: 2.2, ease: 'back.out(1.2)' }, 0);
+        tl.to(group.rotation, { y: 0,     duration: 2.0, ease: 'power3.out'    }, 0);
+        tl.to(cam,            { y: CAM.y, z: CAM.z, duration: 2.6, ease: 'power3.out' }, 0);
       },
       undefined,
       (err) => console.error('GLB load error:', err)
@@ -295,28 +166,23 @@ export function Hero() {
 
     // ── Render loop ───────────────────────────────────────────────────
     let animId: number;
-    let t = 0;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      t += 0.012;
 
       mouse.current.x += (mouse.current.tx - mouse.current.x) * 0.044;
       mouse.current.y += (mouse.current.ty - mouse.current.y) * 0.044;
 
       const sf = Math.min(scrollRef.current / (window.innerHeight || 1), 1);
 
-      camera.position.x = cam.x + mouse.current.x * 3.8;
-      camera.position.y = cam.y + mouse.current.y * 2.0 - sf * 4;
-      camera.position.z = cam.z + sf * 14;
-      camera.lookAt(mouse.current.x * 0.8, 2.0, 0);
-
-      particles.rotation.y  = t * 0.014;
-      particles.position.y  = Math.sin(t * 0.22) * 0.18;
-
-      for (const p of panels) {
-        p.mesh.position.y = p.baseY + Math.sin(t * p.spd + p.ph) * 0.3;
-      }
+      camera.position.x = cam.x + mouse.current.x * 3.2;
+      camera.position.y = cam.y + mouse.current.y * 1.8 - sf * 3.5;
+      camera.position.z = cam.z + sf * 12;
+      camera.lookAt(
+        LOOK.x + mouse.current.x * 0.6,
+        LOOK.y + mouse.current.y * 0.4,
+        LOOK.z
+      );
 
       composer.render();
     };
@@ -344,9 +210,9 @@ export function Hero() {
 
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Left gradient */}
+      {/* Left gradient so text is readable */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5,
-        background: 'linear-gradient(108deg, rgba(8,3,26,0.95) 0%, rgba(8,3,26,0.72) 38%, rgba(8,3,26,0.12) 62%, transparent 100%)',
+        background: 'linear-gradient(108deg, rgba(8,3,26,0.96) 0%, rgba(8,3,26,0.75) 36%, rgba(8,3,26,0.10) 58%, transparent 100%)',
       }} />
 
       {/* Bottom fade */}
