@@ -142,7 +142,7 @@ class OfficeScene {
 
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 200);
     this.camera = camera;
-    this.center = new THREE.Vector3(1.5, 2.4, 0.5);
+    this.center = new THREE.Vector3(-2.0, 2.4, 0.5);
 
     // luces
     scene.add(new THREE.AmbientLight(0x6a6090, 0.13));
@@ -526,9 +526,6 @@ class OfficeScene {
     if (this.sf % 2 === 0) this.drawNebula(t);
     this.mxs += (this.mx - this.mxs) * 0.06; this.mys += (this.my - this.mys) * 0.06;
     this.progress += (this.externalProgress - this.progress) * 0.07;
-    // center.x: empieza izquierda (1.5), va a derecha (-2.0) con scroll
-    const targetCX = 1.5 - 3.5 * this.progress;
-    this.center.x += (targetCX - this.center.x) * 0.05;
     if (this.particles) this.particles.rotation.y = t * 0.018;
     const az = -0.5 + this.progress * 1.60 + Math.sin(t * 0.14) * 0.02 + this.mxs * 0.07 + this.userAz;
     const el = Math.max(0.05, Math.min(0.64, 0.28 - this.progress * 0.04 - this.mys * 0.03 + this.userEl));
