@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import Office3DHero from './Office3DHero';
+import React, { Suspense, lazy, useEffect, useRef } from 'react';
+
+const Office3DHero = lazy(() => import('./Office3DHero'));
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -53,12 +54,14 @@ export function Hero() {
       {/* Sticky viewport — fills 100vh, stays pinned while scrolling through 200vh */}
       <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#0d0620]">
 
-        {/* Fondo 3D interactivo */}
-        <Office3DHero
-          className="absolute inset-0"
-          style={{ zIndex: 0 }}
-          onSetProgress={(fn) => { setOfficeProgress.current = fn; }}
-        />
+        {/* Fondo 3D interactivo — se carga en segundo plano para no bloquear el render inicial */}
+        <Suspense fallback={null}>
+          <Office3DHero
+            className="absolute inset-0"
+            style={{ zIndex: 0 }}
+            onSetProgress={(fn) => { setOfficeProgress.current = fn; }}
+          />
+        </Suspense>
 
         {/* Gradiente izquierdo para legibilidad del texto */}
         <div

@@ -10,9 +10,7 @@
     "preview": "npx vite preview"
   },
   "dependencies": {
-    "@emotion/react": "^11.13.3",
     "@types/three": "^0.185.0",
-    "gsap": "^3.15.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide-react": "0.522.0",

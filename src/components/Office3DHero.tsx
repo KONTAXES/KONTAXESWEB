@@ -32,7 +32,8 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -349,10 +350,19 @@ class OfficeScene {
     this.scene.add(g); this.reg(g, PY);
   }
 
+  gltfLoader() {
+    const draco = new DRACOLoader();
+    draco.setDecoderPath('/draco/');
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(draco);
+    return loader;
+  }
+
   loadPlants(PY: number) {
     const tex = new THREE.TextureLoader().load(`${this.assetsBase}/plant_col.jpg`, (tx) => { (tx as Opt).encoding = (THREE as Opt).sRGBEncoding; tx.flipY = false; });
-    new OBJLoader().load(`${this.assetsBase}/plant.obj`, (obj) => {
+    this.gltfLoader().load(`${this.assetsBase}/plant.draco.glb`, (gltf) => {
       if (this.dead) return;
+      const obj = gltf.scene;
       obj.traverse((ch: Opt) => { if (ch.isMesh) { ch.material = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.78, metalness: 0.0, envMapIntensity: 0.45, side: THREE.DoubleSide, alphaTest: 0.5 }); ch.castShadow = true; ch.receiveShadow = true; } });
       const box = new THREE.Box3().setFromObject(obj); const size = new THREE.Vector3(); box.getSize(size); const c = new THREE.Vector3(); box.getCenter(c);
       const spots = [{ x: 3.35, z: -1.2, h: 2.6 }];
@@ -373,8 +383,9 @@ class OfficeScene {
 
   loadChairs(PY: number) {
     const tex = new THREE.TextureLoader().load(`${this.assetsBase}/chair_diffuse.jpg`, (tx) => { (tx as Opt).encoding = (THREE as Opt).sRGBEncoding; });
-    new OBJLoader().load(`${this.assetsBase}/chair.obj`, (obj) => {
+    this.gltfLoader().load(`${this.assetsBase}/chair.draco.glb`, (gltf) => {
       if (this.dead) return;
+      const obj = gltf.scene;
       obj.traverse((ch: Opt) => { if (ch.isMesh) { ch.material = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5, metalness: 0.05, envMapIntensity: 0.7, emissive: new THREE.Color('#1a120c'), emissiveIntensity: 0.35 }); ch.castShadow = true; ch.receiveShadow = true; } });
       const box = new THREE.Box3().setFromObject(obj); const size = new THREE.Vector3(); box.getSize(size); const c = new THREE.Vector3(); box.getCenter(c);
       const targetH = 2.6, s = targetH / size.z;

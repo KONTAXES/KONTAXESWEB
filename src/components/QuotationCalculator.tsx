@@ -17,7 +17,6 @@ import {
   OUTSOURCING_ROLE_LABEL, ACCESO_PLANS, PRICE_USUARIO_ADICIONAL, KTX_MODULES,
   ADMIN_SUB_LABEL, CONSULTORIA_SUB_LABEL,
 } from '../utils/quotationLogic';
-import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { sendQuotationEmail } from '../utils/emailService';
 
 const WA_NUMBER  = '50235174713';
@@ -283,6 +282,7 @@ export function QuotationCalculator() {
     if (!result) return;
     setPdfLoading(true);
     try {
+      const { generateQuotationPDF } = await import('../utils/pdfGenerator');
       const { blob, filename, quoteNumber } = await generateQuotationPDF(buildPDFParams());
       // Fire-and-forget email in background
       sendQuotationEmail({
@@ -299,6 +299,7 @@ export function QuotationCalculator() {
     if (!result) return;
     setPdfLoading(true);
     try {
+      const { generateQuotationPDF } = await import('../utils/pdfGenerator');
       const { blob, filename, quoteNumber } = await generateQuotationPDF(buildPDFParams());
       sendQuotationEmail({
         nombre: form.nombre, empresa: form.empresa,
