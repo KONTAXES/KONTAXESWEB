@@ -45,6 +45,8 @@ export interface Office3DHeroProps {
   assetsBase?: string;
   className?: string;
   style?: React.CSSProperties;
+  /** Llama con un setter fn(p) para controlar el progreso desde fuera (scroll externo). */
+  onSetProgress?: (fn: (p: number) => void) => void;
 }
 
 // ===== Paleta de marca — edita aquí los colores =====
@@ -75,7 +77,7 @@ class OfficeScene {
   ro?: ResizeObserver;
   raf = 0;
 
-  progress = 0; progressTarget = 0;
+  progress = 0; externalProgress = 0;
   mx = 0; my = 0; mxs = 0; mys = 0;
   userAz = 0; userEl = 0;
   drag: { x: number; y: number } | null = null;
@@ -88,7 +90,11 @@ class OfficeScene {
   desks: { x: number; z: number; ry: number; py: number; screen: string }[] = [];
   ASSEMBLY_END = 4;
 
-  onScroll!: () => void;
+  particles?: THREE.Points;
+  bgCanvas?: HTMLCanvasElement;
+  bgCtx?: CanvasRenderingContext2D;
+  bgTex?: THREE.CanvasTexture;
+
   onDown!: (e: PointerEvent) => void;
   onMove!: (e: PointerEvent) => void;
   onUp!: () => void;
@@ -113,7 +119,13 @@ class OfficeScene {
 
     const scene = new THREE.Scene();
     this.scene = scene;
-    scene.background = new THREE.Color('#0d0620');
+
+    // fondo animado (nebula canvas)
+    const bgC = document.createElement('canvas'); bgC.width = 512; bgC.height = 512;
+    const bgCtx = bgC.getContext('2d')!;
+    const bgTex = new THREE.CanvasTexture(bgC);
+    this.bgCanvas = bgC; this.bgCtx = bgCtx; this.bgTex = bgTex;
+    scene.background = bgTex;
 
     // entorno PBR suave
     try {
@@ -130,7 +142,7 @@ class OfficeScene {
 
     const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 200);
     this.camera = camera;
-    this.center = new THREE.Vector3(-0.5, 2.4, 0.5);
+    this.center = new THREE.Vector3(1.5, 2.4, 0.5);
 
     // luces
     scene.add(new THREE.AmbientLight(0x6a6090, 0.13));
@@ -155,19 +167,10 @@ class OfficeScene {
     // post: bloom
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.24, 0.45, 0.9);
+    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.10, 0.45, 0.9);
     composer.addPass(bloom); this.bloom = bloom;
     composer.addPass(new ShaderPass(GammaCorrectionShader));
     this.composer = composer;
-
-    // scroll → progreso de órbita (relativo al hero)
-    this.onScroll = () => {
-      const rect = wrap.getBoundingClientRect();
-      const vh = window.innerHeight || 1;
-      this.progressTarget = Math.min(1, Math.max(0, -rect.top / vh));
-    };
-    window.addEventListener('scroll', this.onScroll, { passive: true });
-    this.onScroll();
 
     // mouse: parallax + arrastre para rotar
     canvas.style.cursor = 'grab'; canvas.style.touchAction = 'pan-y';
@@ -248,9 +251,58 @@ class OfficeScene {
     this.pieces.push({ obj, delay: this.pieces.length * 0.085, baseY: u.baseY });
   }
 
+  // ---------- fondo animado + partículas ----------
+  drawNebula(t: number) {
+    const ctx = this.bgCtx!; const W = 512;
+    ctx.fillStyle = '#0d0620'; ctx.fillRect(0, 0, W, W);
+    const nebulae: [number, number, number, string, number][] = [
+      [0.30, 0.45, 0.55, 'rgba(90,35,160,0.22)', t * 0.07],
+      [0.72, 0.30, 0.42, 'rgba(35,70,170,0.14)', t * 0.055 + 2],
+      [0.50, 0.72, 0.60, 'rgba(110,40,180,0.12)', t * 0.065 + 4],
+      [0.18, 0.80, 0.38, 'rgba(25,110,145,0.10)', t * 0.08 + 1],
+      [0.85, 0.65, 0.45, 'rgba(70,20,130,0.16)', t * 0.058 + 3],
+    ];
+    nebulae.forEach(([nx, ny, nr, col, nt]) => {
+      const cx = (nx + Math.sin(nt) * 0.06) * W, cy = (ny + Math.cos(nt * 0.75) * 0.06) * W, r = nr * W;
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grd.addColorStop(0, col); grd.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grd; ctx.fillRect(0, 0, W, W);
+    });
+    for (let i = 0; i < 80; i++) {
+      const sx = ((i * 37 + 17) % 100) / 100 * W, sy = ((i * 53 + 29) % 100) / 100 * W;
+      const sa = 0.25 + Math.sin(t * 1.3 + i * 0.8) * 0.2;
+      ctx.beginPath(); ctx.arc(sx, sy, 0.5 + (i % 3) * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${sa})`; ctx.fill();
+    }
+    this.bgTex!.needsUpdate = true;
+  }
+
+  setupParticles() {
+    const count = 220;
+    const pos = new Float32Array(count * 3), col = new Float32Array(count * 3);
+    const palette = [new THREE.Color('#8855ff'), new THREE.Color('#5544bb'), new THREE.Color('#3388cc'), new THREE.Color('#22aacc'), new THREE.Color('#cc88ff'), new THREE.Color('#aa66dd'), new THREE.Color('#44aaaa')];
+    for (let i = 0; i < count; i++) {
+      const th = Math.random() * Math.PI * 2, ph = Math.random() * Math.PI * 0.85;
+      const r = 5 + Math.random() * 14;
+      pos[i*3] = Math.sin(ph) * Math.cos(th) * r;
+      pos[i*3+1] = Math.abs(Math.cos(ph)) * r;
+      pos[i*3+2] = Math.sin(ph) * Math.sin(th) * r - 2;
+      const c = palette[i % palette.length];
+      col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({ size: 0.055, vertexColors: true, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false });
+    this.particles = new THREE.Points(geo, mat);
+    this.scene.add(this.particles);
+  }
+
   // ---------- escena ----------
   buildScene() {
     const S = this.scene;
+    this.setupParticles();
+    this.drawNebula(0);
     // charco de luz (bloom suave)
     const gc = document.createElement('canvas'); gc.width = 256; gc.height = 256;
     const gx = gc.getContext('2d')!;
@@ -429,26 +481,26 @@ class OfficeScene {
     ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Manrope,Arial'; ctx.textAlign = 'center'; ctx.fillText('100%', cx, cy + 4); ctx.textAlign = 'left';
   }
   drawOdoo(ctx: CanvasRenderingContext2D, t: number) {
-    const W = 320; ctx.fillStyle = '#f4f3f7'; ctx.fillRect(0, 0, W, 192);
+    const W = 320; ctx.fillStyle = '#1a1128'; ctx.fillRect(0, 0, W, 192);
     ctx.fillStyle = '#5b3a6e'; ctx.fillRect(0, 0, W, 26); ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Manrope,Arial'; ctx.fillText('Ventas', 12, 18);
     ctx.font = '10px Manrope,Arial'; ctx.fillStyle = '#d9cce4'; ['Pedidos', 'Clientes', 'Productos', 'Informes'].forEach((s, i) => ctx.fillText(s, 70 + i * 58, 18));
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 26, W, 18); ctx.fillStyle = '#6b4d7d'; ctx.font = 'bold 9px Manrope,Arial'; ctx.fillText('Tablero de control', 12, 39);
-    const kp: [string, string, string][] = [['Ingresos', '$ 84.2k', '#7a4b8c'], ['Facturas', '126', '#3f6f7a'], ['Margen', '38%', '#46806a']];
-    kp.forEach((k, i) => { const x = 10 + i * 100; ctx.fillStyle = '#fff'; this.rr(ctx, x, 52, 92, 40, 6); ctx.fill(); ctx.fillStyle = '#9a8aa8'; ctx.font = '8px Manrope,Arial'; ctx.fillText(k[0], x + 9, 66); ctx.fillStyle = k[2]; ctx.font = 'bold 15px Manrope,Arial'; ctx.fillText(k[1], x + 9, 84); });
-    ctx.fillStyle = '#fff'; this.rr(ctx, 10, 100, 300, 82, 6); ctx.fill();
-    [0.5, 0.7, 0.45, 0.85, 0.6, 0.95, 0.75].forEach((b, i) => { const p = 0.85 + 0.15 * Math.sin(t * 2 + i), hh = 60 * b * p; ctx.fillStyle = i === 5 ? '#caa044' : '#7a4b8c'; this.rr(ctx, 22 + i * 40, 170 - hh, 24, hh, 3); ctx.fill(); });
-    ctx.fillStyle = '#b7a8c4'; ctx.font = '8px Manrope,Arial'; ['L', 'M', 'M', 'J', 'V', 'S', 'D'].forEach((d, i) => ctx.fillText(d, 30 + i * 40, 180));
+    ctx.fillStyle = '#231535'; ctx.fillRect(0, 26, W, 18); ctx.fillStyle = '#b09ac8'; ctx.font = 'bold 9px Manrope,Arial'; ctx.fillText('Tablero de control', 12, 39);
+    const kp: [string, string, string][] = [['Ingresos', '$ 84.2k', '#c97fe0'], ['Facturas', '126', '#3fd0e0'], ['Margen', '38%', '#52c88a']];
+    kp.forEach((k, i) => { const x = 10 + i * 100; ctx.fillStyle = '#2d1e44'; this.rr(ctx, x, 52, 92, 40, 6); ctx.fill(); ctx.fillStyle = '#8a7aa8'; ctx.font = '8px Manrope,Arial'; ctx.fillText(k[0], x + 9, 66); ctx.fillStyle = k[2]; ctx.font = 'bold 15px Manrope,Arial'; ctx.fillText(k[1], x + 9, 84); });
+    ctx.fillStyle = '#221540'; this.rr(ctx, 10, 100, 300, 82, 6); ctx.fill();
+    [0.5, 0.7, 0.45, 0.85, 0.6, 0.95, 0.75].forEach((b, i) => { const p = 0.85 + 0.15 * Math.sin(t * 2 + i), hh = 60 * b * p; ctx.fillStyle = i === 5 ? '#caa044' : '#9a4bcc'; this.rr(ctx, 22 + i * 40, 170 - hh, 24, hh, 3); ctx.fill(); });
+    ctx.fillStyle = '#8070a4'; ctx.font = '8px Manrope,Arial'; ['L', 'M', 'M', 'J', 'V', 'S', 'D'].forEach((d, i) => ctx.fillText(d, 30 + i * 40, 180));
   }
   drawExcel(ctx: CanvasRenderingContext2D, t: number) {
-    const W = 320; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, 192); ctx.fillStyle = '#157347'; ctx.fillRect(0, 0, W, 22);
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Manrope,Arial'; ctx.fillText('Presupuesto 2026.xlsx', 10, 15); ctx.fillStyle = '#eef2ee'; ctx.fillRect(0, 22, W, 16);
-    const cw = 44, x0 = 22; ctx.fillStyle = '#6b7a6f'; ctx.font = '8px Manrope,Arial'; ['A', 'B', 'C', 'D', 'E', 'F'].forEach((c, i) => ctx.fillText(c, x0 + i * cw + 18, 33));
-    ctx.strokeStyle = '#e2e8e2'; ctx.lineWidth = 1;
-    for (let r = 0; r < 9; r++) { const y = 38 + r * 17; ctx.fillStyle = r % 2 ? '#f7faf7' : '#fff'; ctx.fillRect(22, y, W - 22, 17); ctx.fillStyle = '#9aa79c'; ctx.font = '8px Manrope,Arial'; ctx.fillText(String(r + 1), 6, y + 12); for (let c = 0; c < 6; c++) { ctx.beginPath(); ctx.moveTo(x0 + c * cw, y); ctx.lineTo(x0 + c * cw, y + 17); ctx.stroke(); } ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    const W = 320; ctx.fillStyle = '#0f1a0f'; ctx.fillRect(0, 0, W, 192); ctx.fillStyle = '#157347'; ctx.fillRect(0, 0, W, 22);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Manrope,Arial'; ctx.fillText('Presupuesto 2026.xlsx', 10, 15); ctx.fillStyle = '#1a2e1a'; ctx.fillRect(0, 22, W, 16);
+    const cw = 44, x0 = 22; ctx.fillStyle = '#5a8a5a'; ctx.font = '8px Manrope,Arial'; ['A', 'B', 'C', 'D', 'E', 'F'].forEach((c, i) => ctx.fillText(c, x0 + i * cw + 18, 33));
+    ctx.strokeStyle = '#1e3a1e'; ctx.lineWidth = 1;
+    for (let r = 0; r < 9; r++) { const y = 38 + r * 17; ctx.fillStyle = r % 2 ? '#101f10' : '#0f1a0f'; ctx.fillRect(22, y, W - 22, 17); ctx.fillStyle = '#4a6a4a'; ctx.font = '8px Manrope,Arial'; ctx.fillText(String(r + 1), 6, y + 12); for (let c = 0; c < 6; c++) { ctx.beginPath(); ctx.moveTo(x0 + c * cw, y); ctx.lineTo(x0 + c * cw, y + 17); ctx.stroke(); } ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
     const rows = [['Ingresos', '12,400', '13,100', '14,800'], ['Costos', '7,200', '7,050', '7,600'], ['Nómina', '3,100', '3,100', '3,250'], ['Utilidad', '2,100', '2,950', '3,950']];
-    rows.forEach((rw, r) => { rw.forEach((v, c) => { ctx.fillStyle = c === 0 ? '#5a6b60' : (r === 3 ? '#157347' : '#33403a'); ctx.font = (c === 0 || r === 3) ? 'bold 8px Manrope,Arial' : '8px Manrope,Arial'; ctx.fillText(v, x0 + c * cw + 6, 38 + (r + 1) * 17 - 5); }); });
-    const sel = Math.floor(t * 0.8) % 4; ctx.strokeStyle = '#157347'; ctx.lineWidth = 2; ctx.strokeRect(x0 + 3 * cw, 38 + (sel + 1) * 17, cw, 17);
-    ctx.strokeStyle = '#157347'; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < 7; i++) { const px = 240 + i * 10, py = 150 - Math.sin(t * 1.5 + i * 0.6) * 6 - i * 2; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); } ctx.stroke();
+    rows.forEach((rw, r) => { rw.forEach((v, c) => { ctx.fillStyle = c === 0 ? '#88bb88' : (r === 3 ? '#52c88a' : '#ccddcc'); ctx.font = (c === 0 || r === 3) ? 'bold 8px Manrope,Arial' : '8px Manrope,Arial'; ctx.fillText(v, x0 + c * cw + 6, 38 + (r + 1) * 17 - 5); }); });
+    const sel = Math.floor(t * 0.8) % 4; ctx.strokeStyle = '#52c88a'; ctx.lineWidth = 2; ctx.strokeRect(x0 + 3 * cw, 38 + (sel + 1) * 17, cw, 17);
+    ctx.strokeStyle = '#52c88a'; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < 7; i++) { const px = 240 + i * 10, py = 150 - Math.sin(t * 1.5 + i * 0.6) * 6 - i * 2; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); } ctx.stroke();
   }
 
   eob(x: number) { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
@@ -469,10 +521,16 @@ class OfficeScene {
       o.rotation.y = (u.baseRotY || 0) + inv * inv * (u.spin || 0);
     });
     for (let i = 0; i < this.animators.length; i++) this.animators[i](t, as);
-    this.sf++; if (this.sf % 4 === 0) this.screens.forEach((s) => s.draw(t));
+    this.sf++;
+    if (this.sf % 4 === 0) this.screens.forEach((s) => s.draw(t));
+    if (this.sf % 2 === 0) this.drawNebula(t);
     this.mxs += (this.mx - this.mxs) * 0.06; this.mys += (this.my - this.mys) * 0.06;
-    this.progress += (this.progressTarget - this.progress) * 0.07;
-    const az = -0.5 + this.progress * 1.05 + Math.sin(t * 0.14) * 0.02 + this.mxs * 0.07 + this.userAz;
+    this.progress += (this.externalProgress - this.progress) * 0.07;
+    // center.x: empieza izquierda (1.5), va a derecha (-2.0) con scroll
+    const targetCX = 1.5 - 3.5 * this.progress;
+    this.center.x += (targetCX - this.center.x) * 0.05;
+    if (this.particles) this.particles.rotation.y = t * 0.018;
+    const az = -0.5 + this.progress * 1.60 + Math.sin(t * 0.14) * 0.02 + this.mxs * 0.07 + this.userAz;
     const el = Math.max(0.05, Math.min(0.64, 0.28 - this.progress * 0.04 - this.mys * 0.03 + this.userEl));
     const R = this.camDist;
     this.camera.position.set(Math.sin(az) * Math.cos(el) * R, this.center.y + Math.sin(el) * R + 1.0, Math.cos(az) * Math.cos(el) * R);
@@ -483,23 +541,26 @@ class OfficeScene {
   dispose() {
     this.dead = true;
     cancelAnimationFrame(this.raf);
-    window.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
     this.canvas.removeEventListener('pointerdown', this.onDown);
     this.ro?.disconnect();
+    this.bgTex?.dispose();
+    this.particles?.geometry.dispose();
+    (this.particles?.material as THREE.Material | undefined)?.dispose();
     this.renderer?.dispose();
   }
 }
 
-export default function Office3DHero({ assetsBase = '/office3d', className, style }: Office3DHeroProps) {
+export default function Office3DHero({ assetsBase = '/office3d', className, style, onSetProgress }: Office3DHeroProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
     const scene = new OfficeScene(canvasRef.current, assetsBase);
+    if (onSetProgress) onSetProgress((p: number) => { scene.externalProgress = p; });
     return () => scene.dispose();
-  }, [assetsBase]);
+  }, [assetsBase, onSetProgress]);
 
   return (
     <div className={className} style={{ position: 'absolute', inset: 0, ...style }}>
