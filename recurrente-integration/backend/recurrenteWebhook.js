@@ -89,31 +89,35 @@ Deno.serve(async (req) => {
       return new Response("Firma inválida", { status: 401 });
     }
 
-    const event = JSON.parse(rawBody);
-    const type = event.event_type || event.type; // [VERIFICAR] naming
-    console.log("[webhook] evento recibido:", type);
+    // Estructura real del evento de Recurrente:
+    // { "event": "payment_intent.succeeded",
+    //   "data": { "checkout": { "id", "metadata": { "external_id", ... } },
+    //             "amount_in_cents", "currency" } }
+    const evt = JSON.parse(rawBody);
+    const type = evt.event;
+    const data = evt.data || {};
+    const metadata = data?.checkout?.metadata || {};
+    // Usamos external_id (o order_id) para relacionar el pago con tu orden.
+    const orderId = metadata.external_id || metadata.order_id;
+    console.log("[webhook] evento recibido:", type, "order:", orderId);
 
     // ------------------------------------------------------------------
     //  Maneja aquí los eventos que te importan.
     // ------------------------------------------------------------------
     switch (type) {
-      case "payment_intent.succeeded":
-      case "checkout.completed": {
-        const data = event.data || event;
-        const orderId = data?.metadata?.order_id;
-        const amount = data?.amount || data?.amount_as_decimal;
-
+      case "payment_intent.succeeded": {
+        const amountInCents = data?.amount_in_cents;
         // TODO (Base44): actualiza tu entidad de Órdenes/Pagos.
         //   await base44.entities.Order.update(orderId, { status: "paid" });
         //   await enviarCorreoConfirmacion(...);
-        console.log(`[webhook] PAGO EXITOSO order=${orderId} monto=${amount}`);
+        console.log(
+          `[webhook] PAGO EXITOSO order=${orderId} monto_centavos=${amountInCents}`,
+        );
         break;
       }
 
-      case "payment_intent.failed":
-      case "checkout.expired": {
-        const orderId = (event.data || event)?.metadata?.order_id;
-        console.log(`[webhook] pago fallido/expirado order=${orderId}`);
+      case "payment_intent.failed": {
+        console.log(`[webhook] pago fallido order=${orderId}`);
         // await base44.entities.Order.update(orderId, { status: "failed" });
         break;
       }
