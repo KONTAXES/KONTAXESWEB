@@ -12,6 +12,7 @@ los **3 días**.
 | Archivo | Dónde va en Base44 | Qué hace |
 |---|---|---|
 | `backend/paggoCreateLink.js` | Backend Function | Genera un link de cobro → devuelve `link` + `expirationDate` |
+| `backend/paggoWebhook.js` | Backend Function | **Recibe la confirmación de pago de Paggo** (vía preferida) |
 | `backend/paggoLinks.js` | Backend Function | Consulta/gestiona links: `list`, `get` (estado), `voucher`, `cancel` |
 | `frontend/PaggoPayButton.tsx` | Componente React | Botón que genera el link y redirige a pagar |
 
@@ -20,6 +21,8 @@ los **3 días**.
 | Variable | Ejemplo | Nota |
 |---|---|---|
 | `PAGGO_API_KEY` | `••••••` | **Solo backend.** Panel de Paggo → sección Credenciales |
+| `PAGGO_WEBHOOK_SECRET` | `••••••` | Secreto para validar el webhook (si Paggo lo permite) |
+| `PAGGO_WEBHOOK_HEADER` | `x-paggo-signature` | Nombre del header donde llega el secreto/firma `[VERIFICAR]` |
 | `SITE_URL` | `https://kontaxes.com` | Sin slash final (para CORS) |
 
 ## ✅ Datos técnicos (Paggo API)
@@ -29,10 +32,13 @@ los **3 días**.
 - **Validar credenciales:** `POST /center/transactions/welcome`.
 - **Montos:** número en **quetzales** (ej. `amount: 150` = Q150.00).
 - **Vigencia del link:** 3 días.
-- **⚠️ Sin webhooks:** la confirmación del pago se hace **consultando el estado**
-  del link (`action: "get"`), hasta que `status` sea `"pagado"`.
+- **Confirmación del pago (2 vías):**
+  1. **Webhook (recomendada):** configura la URL de `paggoWebhook` en el panel de
+     Paggo; Paggo notifica automáticamente cuando el link se paga.
+  2. **Polling (respaldo):** consultar el estado del link (`action: "get"`) hasta
+     que `status` sea `"pagado"`.
 
-## 🔄 Flujo del pago
+## 🔄 Flujo del pago (con webhook)
 
 ```
 Cliente pulsa "Pagar"
@@ -44,11 +50,14 @@ Frontend (PaggoPayButton)  ──POST──►  Backend (paggoCreateLink)
         ▼                                        (Paggo también envía el link por correo)
 window.location = link  ──►  Cliente paga en Paggo
         │
-        ▼   (como NO hay webhook, se confirma consultando el estado)
-Backend (paggoLinks · action:"get") ──► status: "pendiente" → "pagado"
-        │
+        ▼
+Paggo ──webhook──► Backend (paggoWebhook)
+        │  valida el secreto + lee el estado
         └─ status "pagado": marca la orden como PAGADA + descarga voucher (opcional)
 ```
+
+> Si el webhook está configurado, **no necesitas polling**. Deja `paggoLinks · get`
+> como respaldo para reconciliación manual o reintentos.
 
 ## 🧾 Endpoints cubiertos
 
@@ -68,13 +77,15 @@ Estados posibles de un link: `pendiente`, `pagado`, `cancelado` (y vencido por f
 2. Configurar la variable **`PAGGO_API_KEY`** (y `SITE_URL`).
 3. Agregar `PaggoPayButton.tsx` donde se cobre (ajustar `BACKEND_URL` o usar el
    SDK `base44.functions.paggoCreateLink({...})`).
-4. **Confirmación de pago (importante, no hay webhook):** implementar la
-   consulta de estado. Dos opciones:
-   - **Polling programado**: una tarea/cron en Base44 que cada X minutos llame a
-     `paggoLinks` · `get` para los links `pendiente` y actualice la orden cuando
-     pasen a `pagado`.
-   - **Consulta on-demand**: al volver el cliente al sitio, consultar el estado
-     del link antes de mostrar "pago confirmado".
+4. **Confirmación de pago (recomendado: webhook):**
+   - Crear la función backend `paggoWebhook` y registrar su URL pública en el
+     panel de Paggo.
+   - Configurar `PAGGO_WEBHOOK_SECRET` (y `PAGGO_WEBHOOK_HEADER`) para validar
+     que la llamada venga de Paggo. `[VERIFICAR]` con Paggo el esquema exacto de
+     firma/autenticación y el formato del payload.
+   - En `paggoWebhook.js`, al detectar `status = paid`, actualizar la orden.
+   - **Respaldo (opcional):** dejar `paggoLinks · get` para consultas on-demand o
+     un cron de reconciliación.
 5. **(Opcional)** Al detectar `pagado`, usar `paggoLinks` · `voucher` para
    guardar/mostrar el comprobante PDF.
 
