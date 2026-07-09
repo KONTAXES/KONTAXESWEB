@@ -22,15 +22,17 @@ import { useState } from "react";
 const BACKEND_URL = "/functions/paggoCreateLink";
 
 interface PaggoPayButtonProps {
-  amount: number; // monto en quetzales, ej. 150.00
+  amount: number; // monto en quetzales, ej. 150.00 (mínimo Q2.00)
   concept: string; // descripción del cobro
   customerName: string; // nombre del cliente
   email: string; // correo del cliente (recibe el link)
+  orderId?: string; // tu id de orden → vuelve en el webhook (metadata.custom.orderId)
+  redirectUrl?: string; // (opcional) a dónde redirigir al cliente tras pagar
   label?: string;
   className?: string;
   /** Si true, redirige a la URL del link. Si false, solo la devuelve por onCreated. */
   redirect?: boolean;
-  onCreated?: (data: { link: string; expirationDate: string }) => void;
+  onCreated?: (data: { id: number; link: string; expirationDate: string }) => void;
 }
 
 export default function PaggoPayButton({
@@ -38,6 +40,8 @@ export default function PaggoPayButton({
   concept,
   customerName,
   email,
+  orderId,
+  redirectUrl,
   label = "Generar link de pago",
   className = "",
   redirect = true,
@@ -53,7 +57,14 @@ export default function PaggoPayButton({
       const res = await fetch(BACKEND_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, concept, customerName, email }),
+        body: JSON.stringify({
+          amount,
+          concept,
+          customerName,
+          email,
+          orderId,
+          redirectUrl,
+        }),
       });
 
       const data = await res.json();

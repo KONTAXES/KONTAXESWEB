@@ -1,82 +1,111 @@
 /**
  * ============================================================================
- *  PAGGO · Función Backend: Webhook (confirmación de pago)
+ *  PAGGO · Función Backend: Webhook (notificaciones en tiempo real)
  * ============================================================================
  *
  *  Plataforma destino: Base44 (Backend Function - Deno)
+ *  Basado en la documentación oficial de Webhooks de Paggo.
  *
  *  Qué hace:
- *   - Recibe la notificación que Paggo envía cuando un link cambia de estado
- *     (ej. cuando se paga). Verifica que la llamada sea legítima y actualiza
- *     tu orden (marcar como PAGADA, guardar voucher, etc.).
- *   - Con webhook YA NO necesitas hacer polling del estado del link.
+ *   - Recibe los eventos que Paggo envía cuando cambia el estado de un link:
+ *       · LINK_PAYED_SUCCESS    → el cliente pagó exitosamente.
+ *       · LINK_WRONG_PAYMENT    → pago fallido / link expirado / cancelado / rechazo.
+ *       · LINK_REVERSED_SUCCESS → se revirtió (reembolsó) un pago.
+ *   - Relaciona el evento con tu orden vía data.metadata.custom.orderId
+ *     (el mismo objeto `custom` que enviaste al crear el link) o vía data.linkId.
  *
- *  Configuración en el panel de Paggo:
- *   - Registra la URL pública de esta función como tu Webhook URL, p. ej.:
- *       https://<tu-backend-base44>/paggoWebhook
+ *  Configuración en el panel de Paggo (Credenciales → Webhooks):
+ *   1. Selecciona la API Key que emitirá los eventos.
+ *   2. URL de Webhook: https://<tu-backend-base44>/paggoWebhook
+ *   3. Selecciona los eventos (o todos) y activa el webhook.
  *
- *  Seguridad — [VERIFICAR] con Paggo cómo autentican el webhook:
- *   - Opción A (recomendada): Paggo permite configurar un secreto/token que
- *     envía en un header. Guarda ese valor como variable de entorno y compáralo:
- *       PAGGO_WEBHOOK_SECRET = <secreto que configures en Paggo>
- *       PAGGO_WEBHOOK_HEADER = x-paggo-signature   (nombre real del header)
- *   - Si Paggo reusa tu X-API-KEY o manda otro esquema (HMAC/firma), ajusta
- *     `verifyRequest()` según su documentación.
+ *  Seguridad (Paggo NO firma con HMAC):
+ *   - El evento trae `source.keyId` = ID de la llave que lo generó. Valida que
+ *     coincida con el ID de TU llave (variable de entorno):
+ *       PAGGO_WEBHOOK_KEY_ID = 6d69e6aa-....   (lo ves en el panel de Credenciales)
+ *   - Defensa adicional recomendada: reconfirmar el estado con un GET al link
+ *     (PAGGO_VERIFY_WITH_API=true + PAGGO_API_KEY). Así no dependes solo del POST.
  *
- *  [VERIFICAR] el formato exacto del payload que envía Paggo. Este handler lee
- *   los campos de forma flexible (id/linkId, status, paymentDate, amount) para
- *   funcionar con la estructura de sus objetos de link.
+ *  Variables de entorno:
+ *     PAGGO_WEBHOOK_KEY_ID   = <keyId esperado>        (recomendado)
+ *     PAGGO_API_KEY          = <tu api key>            (para la reconfirmación)
+ *     PAGGO_VERIFY_WITH_API  = "true" | "false"        (opcional)
  * ============================================================================
  */
+
+const PAGGO_API = "https://api.paggoapp.com/api";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Método no permitido", { status: 405 });
   }
 
-  // Cuerpo CRUDO (por si luego se necesita validar una firma HMAC).
-  const rawBody = await req.text();
-
   try {
-    // ---- 1) Verificación de origen -------------------------------------
-    if (!verifyRequest(req)) {
-      console.warn("[paggoWebhook] verificación fallida");
+    const evt = await req.json();
+    const type = evt.event;
+    const data = evt.data || {};
+    // El objeto `custom` puede venir en data.metadata.custom (pago exitoso/reverso)
+    // o en metadata.custom a nivel raíz (LINK_WRONG_PAYMENT).
+    const custom = data?.metadata?.custom || evt?.metadata?.custom || {};
+    const orderId = custom.orderId;
+    const linkId = data.linkId;
+
+    // ---- 1) Validar el origen (source.keyId) --------------------------
+    const expectedKeyId = Deno.env.get("PAGGO_WEBHOOK_KEY_ID");
+    if (expectedKeyId && evt?.source?.keyId !== expectedKeyId) {
+      console.warn(
+        `[paggoWebhook] keyId inesperado: ${evt?.source?.keyId}`,
+      );
       return new Response("No autorizado", { status: 401 });
     }
 
-    // ---- 2) Parseo flexible del payload --------------------------------
-    const evt = JSON.parse(rawBody);
-    // Paggo puede anidar la info en result/data o mandarla en la raíz.
-    const p = evt.result || evt.data || evt;
-
-    const linkId = p.id ?? p.linkId ?? evt.linkId;
-    const rawStatus = String(p.status ?? evt.status ?? "").toLowerCase();
-    const paymentDate = p.paymentDate ?? p.fechaRealizoPago ?? null;
-    const amount = p.amount ?? p.monto ?? null;
-
-    // Normaliza el estado a: paid | canceled | pending
-    const status = rawStatus.includes("pagad")
-      ? "paid"
-      : rawStatus.includes("cancel")
-        ? "canceled"
-        : "pending";
-
     console.log(
-      `[paggoWebhook] link=${linkId} status=${status} monto=${amount}`,
+      `[paggoWebhook] evento=${type} link=${linkId} order=${orderId}`,
     );
 
-    // ---- 3) Actúa según el estado --------------------------------------
-    if (status === "paid") {
-      // TODO (Base44): relaciona el linkId con tu orden y márcala pagada.
-      //   const order = await base44.entities.Order.filter({ paggoLinkId: linkId });
-      //   await base44.entities.Order.update(order.id, {
-      //     status: "paid", paidAt: paymentDate, amount,
-      //   });
-      //   (opcional) descargar voucher con paggoLinks · action:"voucher".
-      console.log(`[paggoWebhook] PAGO CONFIRMADO link=${linkId}`);
-    } else if (status === "canceled") {
-      // await base44.entities.Order.update(..., { status: "canceled" });
-      console.log(`[paggoWebhook] link cancelado link=${linkId}`);
+    // ---- 2) (Opcional) Reconfirmar con la API -------------------------
+    // Como no hay firma, opcionalmente verificamos el estado real del link.
+    if (Deno.env.get("PAGGO_VERIFY_WITH_API") === "true" && linkId) {
+      const ok = await confirmStatusViaApi(linkId, type);
+      if (!ok) {
+        console.warn(`[paggoWebhook] la API no confirma el evento ${type}`);
+        return new Response("Estado no confirmado", { status: 409 });
+      }
+    }
+
+    // ---- 3) Actuar según el evento ------------------------------------
+    switch (type) {
+      case "LINK_PAYED_SUCCESS": {
+        const amount = data.amount;
+        const paymentDate = data.paymentDate; // epoch ms
+        // TODO (Base44): marca la orden como pagada.
+        //   await base44.entities.Order.update(orderId, {
+        //     status: "paid", paidAt: new Date(paymentDate), amount,
+        //     paymentMethod: data.paymentMethod?.brand, last4: data.paymentMethod?.last4,
+        //   });
+        //   (opcional) guardar voucher con paggoLinks · action:"voucher".
+        console.log(`[paggoWebhook] PAGO EXITOSO order=${orderId} monto=${amount}`);
+        break;
+      }
+
+      case "LINK_WRONG_PAYMENT": {
+        const errorMessage = data.errorMessage;
+        // await base44.entities.Order.update(orderId, { status: "failed" });
+        console.log(
+          `[paggoWebhook] PAGO FALLIDO order=${orderId} motivo=${errorMessage}`,
+        );
+        break;
+      }
+
+      case "LINK_REVERSED_SUCCESS": {
+        const reason = data.reversalReason;
+        // await base44.entities.Order.update(orderId, { status: "reversed" });
+        console.log(`[paggoWebhook] PAGO REVERTIDO order=${orderId} motivo=${reason}`);
+        break;
+      }
+
+      default:
+        console.log("[paggoWebhook] evento no manejado:", type);
     }
 
     // Responde 200 rápido para que Paggo no reintente.
@@ -93,18 +122,19 @@ Deno.serve(async (req) => {
   }
 });
 
-/**
- * Verifica que la petición venga realmente de Paggo.
- * [VERIFICAR] Ajusta al esquema real de Paggo.
- * Por defecto: compara un secreto compartido enviado en un header configurable.
- * Si no configuras PAGGO_WEBHOOK_SECRET, deja pasar (útil solo en pruebas).
- */
-function verifyRequest(req) {
-  const secret = Deno.env.get("PAGGO_WEBHOOK_SECRET");
-  if (!secret) return true; // ⚠️ sin secreto no hay validación (solo pruebas)
-
-  const headerName =
-    Deno.env.get("PAGGO_WEBHOOK_HEADER") || "x-paggo-signature";
-  const received = req.headers.get(headerName);
-  return received === secret;
+/** Reconfirma el estado del link llamando a la API de Paggo. */
+async function confirmStatusViaApi(linkId, eventType) {
+  try {
+    const res = await fetch(`${PAGGO_API}/center/transactions/links/${linkId}`, {
+      headers: { "X-API-KEY": Deno.env.get("PAGGO_API_KEY") },
+    });
+    if (!res.ok) return false;
+    const body = await res.json();
+    const status = String(body?.result?.status || "").toLowerCase();
+    if (eventType === "LINK_PAYED_SUCCESS") return status.includes("pagad");
+    // Para otros eventos no bloqueamos por estado.
+    return true;
+  } catch {
+    return false;
+  }
 }
