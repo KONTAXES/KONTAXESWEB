@@ -62,6 +62,7 @@ export function App() {
           slideComponents={activePresentation.slides}
           title={activePresentation.title}
           subtitle={activePresentation.subtitle}
+          isDark={isDark}
           onClose={() => setActivePresentationId(null)}
           onDownloadPDF={generateWorkshopPDF}
         />

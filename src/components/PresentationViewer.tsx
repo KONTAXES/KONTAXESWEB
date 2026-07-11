@@ -3,11 +3,13 @@ import {
   ChevronLeftIcon, ChevronRightIcon, XIcon,
   MaximizeIcon, MinimizeIcon, DownloadIcon,
 } from 'lucide-react';
+import { SlideThemeContext } from './slides/PequenioContribuyenteSlides';
 
 export interface PresentationViewerProps {
   slideComponents: React.FC[];
   title: string;
   subtitle?: string;
+  isDark: boolean;
   onClose: () => void;
   onDownloadPDF?: () => Promise<void>;
 }
@@ -50,7 +52,7 @@ const STYLE = `
 `;
 
 export function PresentationViewer({
-  slideComponents, title, subtitle, onClose, onDownloadPDF,
+  slideComponents, title, subtitle, isDark, onClose, onDownloadPDF,
 }: PresentationViewerProps) {
   const [current,      setCurrent]      = useState(0);
   const [direction,    setDirection]    = useState<'next' | 'prev'>('next');
@@ -102,11 +104,26 @@ export function PresentationViewer({
 
   const SlideComponent = slideComponents[current];
 
+  const chromeBg   = isDark ? 'rgba(0,0,0,0.55)'              : 'rgba(240,240,248,0.85)';
+  const chromeBdr  = isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.08)';
+  const arrowBg    = isDark ? 'rgba(0,0,0,0.45)'              : 'rgba(255,255,255,0.75)';
+  const arrowBdr   = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.12)';
+  const arrowColor = isDark ? 'rgba(255,255,255,0.35)'        : 'rgba(0,0,0,0.45)';
+  const titleColor = isDark ? 'rgba(255,255,255,0.45)'        : 'rgba(0,0,0,0.55)';
+  const subColor   = isDark ? 'rgba(255,255,255,0.22)'        : 'rgba(0,0,0,0.30)';
+  const ctrlBg     = isDark ? 'rgba(255,255,255,0.05)'        : 'rgba(0,0,0,0.05)';
+  const ctrlBdr    = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.10)';
+  const ctrlColor  = isDark ? 'rgba(255,255,255,0.38)'        : 'rgba(0,0,0,0.45)';
+  const progressBg = isDark ? 'rgba(255,255,255,0.07)'        : 'rgba(0,0,0,0.08)';
+  const counterC   = isDark ? 'rgba(255,255,255,0.28)'        : 'rgba(0,0,0,0.38)';
+  const pctColor   = isDark ? 'rgba(255,255,255,0.22)'        : 'rgba(0,0,0,0.30)';
+  const hintColor  = isDark ? 'rgba(255,255,255,0.16)'        : 'rgba(0,0,0,0.22)';
+
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 flex flex-col select-none"
-      style={{ background: '#07030f', zIndex: 9999 }}
+      style={{ background: isDark ? '#07030f' : '#f8fafc', zIndex: 9999 }}
     >
       <style>{STYLE}</style>
 
@@ -116,17 +133,17 @@ export function PresentationViewer({
         style={{
           height: 40,
           padding: '0 12px',
-          background: 'rgba(0,0,0,0.55)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: chromeBg,
+          borderBottom: chromeBdr,
         }}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <img src="/K_white.png" alt="K" style={{ height: 18, width: 'auto', opacity: 0.55 }} />
-          <span className="text-xs font-medium truncate hidden sm:block" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <img src={isDark ? '/K_white.png' : '/K_black.png'} alt="K" style={{ height: 18, width: 'auto', opacity: 0.55 }} />
+          <span className="text-xs font-medium truncate hidden sm:block" style={{ color: titleColor }}>
             {title}
           </span>
           {subtitle && (
-            <span className="text-xs hidden md:block" style={{ color: 'rgba(255,255,255,0.22)' }}>
+            <span className="text-xs hidden md:block" style={{ color: subColor }}>
               · {subtitle}
             </span>
           )}
@@ -153,8 +170,8 @@ export function PresentationViewer({
             title="Pantalla completa (F / doble clic)"
             style={{
               width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.38)', cursor: 'pointer',
+              borderRadius: 6, background: ctrlBg, border: ctrlBdr,
+              color: ctrlColor, cursor: 'pointer',
             }}
           >
             {isFullscreen ? <MinimizeIcon size={13} /> : <MaximizeIcon size={13} />}
@@ -164,8 +181,8 @@ export function PresentationViewer({
             title="Cerrar"
             style={{
               width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.38)', cursor: 'pointer',
+              borderRadius: 6, background: ctrlBg, border: ctrlBdr,
+              color: ctrlColor, cursor: 'pointer',
             }}
           >
             <XIcon size={13} />
@@ -179,7 +196,9 @@ export function PresentationViewer({
           key={`${current}-${animKey}`}
           className={`absolute inset-0 ${direction === 'next' ? 'ps-enter-right' : 'ps-enter-left'}`}
         >
-          <SlideComponent />
+          <SlideThemeContext.Provider value={isDark}>
+            <SlideComponent />
+          </SlideThemeContext.Provider>
         </div>
 
         {/* Click-to-advance overlay (center zone) */}
@@ -198,8 +217,8 @@ export function PresentationViewer({
           {current > 0 && (
             <div style={{
               width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.35)',
+              borderRadius: '50%', background: arrowBg, border: arrowBdr,
+              color: arrowColor,
             }}>
               <ChevronLeftIcon size={18} />
             </div>
@@ -215,8 +234,8 @@ export function PresentationViewer({
           {current < total - 1 && (
             <div style={{
               width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.35)',
+              borderRadius: '50%', background: arrowBg, border: arrowBdr,
+              color: arrowColor,
             }}>
               <ChevronRightIcon size={18} />
             </div>
@@ -229,14 +248,14 @@ export function PresentationViewer({
         className="flex items-center gap-3 flex-shrink-0"
         style={{
           height: 36, padding: '0 14px',
-          background: 'rgba(0,0,0,0.55)',
-          borderTop: '1px solid rgba(255,255,255,0.05)',
+          background: chromeBg,
+          borderTop: chromeBdr,
         }}
       >
-        <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11, fontFamily: 'monospace', width: 48 }}>
+        <span style={{ color: counterC, fontSize: 11, fontFamily: 'monospace', width: 48 }}>
           {current + 1}/{total}
         </span>
-        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: 'rgba(255,255,255,0.07)' }}>
+        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: progressBg }}>
           <div
             className="h-full rounded-full"
             style={{
@@ -246,10 +265,10 @@ export function PresentationViewer({
             }}
           />
         </div>
-        <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: 11, width: 32, textAlign: 'right' }}>
+        <span style={{ color: pctColor, fontSize: 11, width: 32, textAlign: 'right' }}>
           {Math.round(((current + 1) / total) * 100)}%
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.16)', fontSize: 10, display: 'none' }} className="sm:inline">
+        <span style={{ color: hintColor, fontSize: 10, display: 'none' }} className="sm:inline">
           ← → Navegar · Clic · Espacio
         </span>
       </div>

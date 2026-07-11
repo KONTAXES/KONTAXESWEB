@@ -41,7 +41,7 @@ export async function generateWorkshopPDF(): Promise<void> {
   const addWatermark = (isDarkPage = false) => {
     const logoData = isDarkPage ? logoWhite : logoBlack;
     if (logoData) {
-      const size = 130;
+      const size = 170;
       const x = (PW - size) / 2;
       const y = (PH - size) / 2;
       doc.saveGraphicsState();
