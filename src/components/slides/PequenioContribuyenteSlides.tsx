@@ -608,7 +608,7 @@ const Slide18Sanciones: React.FC = () => (
           OMISO = no presentaste tu declaración en el plazo legal
         </p>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
-          SAT sabe que no declaraste porque cruza datos con tus facturas FEL. Si no declaras, te llega una resolución de ajuste con cargos.
+          SAT cruza datos con tus facturas FEL y sabe cuánto vendiste. Si no declaras, generás cargos automáticos por cada día que pasa.
         </p>
       </div>
       <div className="ps-up ps-d2" style={{ overflowX: 'auto', flex: 1 }}>
@@ -622,9 +622,9 @@ const Slide18Sanciones: React.FC = () => (
           </thead>
           <tbody>
             {[
-              ['Multa por omisión', 'Mínimo Q 1,000 o el 2% del impuesto (lo que sea mayor)', 'Art. 94 Código Tributario'],
-              ['Interés resarcitorio', '15% anual sobre el impuesto no pagado', 'Art. 58 Código Tributario'],
-              ['Mora / Recargo', 'Cargo adicional por cada mes de retraso', 'Art. 92 Código Tributario'],
+              ['Omiso (por día)', 'Q 7.50 por cada día de atraso · máximo Q 150 por declaración', 'Art. 94 Cód. Tributario'],
+              ['Interés resarcitorio', 'Calculado sobre el impuesto no pagado según tasa legal vigente', 'Art. 58 Cód. Tributario'],
+              ['Mora / Recargo', 'Cargo adicional por el tiempo de retraso en el pago', 'Art. 92 Cód. Tributario'],
             ].map(([cargo, calc, base], i) => (
               <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'transparent' }}>
                 <td style={{ padding: '11px 14px', color: '#fca5a5', fontWeight: 700 }}>{cargo}</td>
@@ -638,7 +638,7 @@ const Slide18Sanciones: React.FC = () => (
       <div className="ps-up ps-d5" style={{ ...panel('rgba(245,158,11,0.3)', 'rgba(245,158,11,0.07)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24', flexShrink: 0, marginTop: 6 }} />
         <p style={{ color: '#fcd34d', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
-          <strong>Rectificación:</strong> Si declaraste con datos equivocados, puedes enviar una declaración rectificativa. Pero igual pagarás intereses sobre la diferencia y posiblemente multa. Mejor hacerlo bien desde el inicio.
+          <strong>Rectificación:</strong> Si declaraste con datos equivocados, presentás una declaración rectificativa en Agencia Virtual. El costo de rectificar es <strong>Q 15.00</strong>. Aún así, pagarás intereses sobre la diferencia no pagada a tiempo.
         </p>
       </div>
     </div>
@@ -669,14 +669,19 @@ const Slide19EjemploMulta: React.FC = () => (
               </div>
             ))}
           </div>
+          <div style={{ marginTop: 'auto', padding: '10px 14px', borderRadius: 10, background: 'rgba(147,51,234,0.12)', border: '1px solid rgba(147,51,234,0.25)', textAlign: 'center' }}>
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 'clamp(0.85rem, 1.7vw, 1rem)', marginBottom: 4 }}>Si pagas a tiempo</div>
+            <div style={{ ...SG, fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 900, color: '#c084fc' }}>Q 400.00</div>
+          </div>
         </div>
         <div className="ps-up ps-d3" style={{ ...panel('rgba(239,68,68,0.3)', 'rgba(239,68,68,0.07)'), display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Tag label="Lo que pagas tarde" color="#fca5a5" />
+          <Tag label="Lo que pagas tarde (20 días de atraso)" color="#fca5a5" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 'clamp(1rem, 2.2vw, 1.3rem)', fontVariantNumeric: 'tabular-nums' }}>
             {[
-              ['Multa mínima', 'Q 1,000.00', '#fca5a5'],
-              ['Intereses (2 meses)', '~Q 10.00', '#f87171'],
-              ['Mora', '~Q 15.00', '#f87171'],
+              ['IVA original', 'Q 400.00', '#e2e8f0'],
+              ['Omiso (20 días × Q 7.50)', 'Q 150.00 (máx)', '#fca5a5'],
+              ['Intereses (aprox.)', '~Q 8.00', '#f87171'],
+              ['Mora (aprox.)', '~Q 12.00', '#f87171'],
             ].map(([label, val, color]) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 8 }}>
                 <span style={{ color: 'rgba(255,255,255,0.55)' }}>{label}</span>
@@ -688,9 +693,9 @@ const Slide19EjemploMulta: React.FC = () => (
       </div>
       <div className="ps-up ps-d5" style={{ ...panel('rgba(239,68,68,0.5)', 'rgba(239,68,68,0.1)'), textAlign: 'center' }}>
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', marginBottom: 8 }}>TOTAL A PAGAR (impuesto + cargos)</div>
-        <div style={{ ...SG, fontSize: 'clamp(2.5rem, 7vw, 5rem)', fontWeight: 900, color: '#fca5a5' }}>Q 1,425.00</div>
+        <div style={{ ...SG, fontSize: 'clamp(2.5rem, 7vw, 5rem)', fontWeight: 900, color: '#fca5a5' }}>Q 570.00</div>
         <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', marginTop: 8 }}>
-          vs. Q 400.00 si hubieras pagado a tiempo — <strong style={{ color: '#fca5a5' }}>3.5 veces más caro</strong>
+          vs. Q 400.00 si hubieras pagado a tiempo — <strong style={{ color: '#fca5a5' }}>Q 170 extra que podías ahorrarte</strong>
         </div>
       </div>
     </div>
@@ -727,13 +732,13 @@ const Slide21AgenciaVirtual: React.FC = () => (
 /* ─── Slide 22 · Resumen General ──────────────────────────────────────── */
 const Slide22Resumen: React.FC = () => {
   const puntos = [
-    ['#c084fc', 'Régimen simplificado', 'Pagas solo el 5% de lo que vendiste en el mes. Sin deducciones complicadas.'],
-    ['#60a5fa', 'Límite anual', '~Q 500,000 al año (Decreto 31-2024). Si lo superas, cambias de régimen.'],
+    ['#c084fc', 'Pequeño Contribuyente', 'Pagas solo el 5% de lo que vendiste en el mes. Sin deducciones complicadas.'],
+    ['#60a5fa', 'Límite anual', '125 salarios mínimos ≈ Q 500,285/año (Decreto 31-2024). Si lo superas, cambias de régimen.'],
     ['#a78bfa', 'Base legal', 'Decreto 27-92 Arts. 45-50 + Decreto 31-2024 (reforma 2024).'],
     ['#6ee7b7', 'Cálculo', 'IVA = Ventas del mes × 5%. Se paga hasta el último día del mes siguiente.'],
     ['#fbbf24', 'Formulario SAT-2046', 'Se llena en línea en portal.sat.gob.gt. Guarda siempre la constancia de pago.'],
     ['#f9a8d4', 'LET obligatorio', 'El libro electrónico de ventas se presenta mensualmente en Agencia Virtual.'],
-    ['#fca5a5', 'No declarar = multa', 'Mínimo Q 1,000 más intereses y mora. Declarar a tiempo siempre es más barato.'],
+    ['#fca5a5', 'Omisos y multas', 'Q 7.50/día · máx Q 150 por declaración · Rectificación Q 15. Declarar a tiempo siempre es más barato.'],
     ['#67e8f9', 'Agencia Virtual', 'portal.sat.gob.gt — consulta, descarga y verifica todos tus formularios pagados.'],
   ];
   return (

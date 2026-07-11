@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircleIcon, BookOpenIcon, ClockIcon, UsersIcon, StarIcon } from 'lucide-react';
+import { PlayCircleIcon, BookOpenIcon, ClockIcon, UsersIcon, StarIcon, LockIcon } from 'lucide-react';
 
 interface RecursosProps {
   isDark: boolean;
@@ -17,6 +17,7 @@ interface Course {
   topics: string[];
   available: boolean;
   badge?: string;
+  socialProgram?: boolean;
 }
 
 const courses: Course[] = [
@@ -27,18 +28,19 @@ const courses: Course[] = [
     subtitle: 'Pequeño Contribuyente',
     description:
       'Aprende a declarar el IVA como Pequeño Contribuyente: cálculo, formulario SAT-2046, libros contables y qué pasa si no declaras.',
-    duration: '1h 30min',
+    duration: '8 horas',
     level: 'Básico-Intermedio',
     topics: [
       'Generalidades del régimen',
-      'Límite Q500,000 anual',
+      'Límite Q500,285 anual',
       'Cálculo del 5% IVA',
       'Formulario SAT-2046',
       'LET Pequeño Contribuyente',
       'Multas y rectificaciones',
     ],
     available: true,
-    badge: 'Nuevo',
+    badge: 'Disponible',
+    socialProgram: true,
   },
   {
     id: 'regimen-opcional',
@@ -47,7 +49,7 @@ const courses: Course[] = [
     subtitle: 'ISR + IVA 12%',
     description:
       'Comprende cómo funciona el régimen opcional: ISR trimestral, IVA mensual, retenciones y cierre anual.',
-    duration: '2h',
+    duration: '8 horas',
     level: 'Intermedio',
     topics: ['ISR trimestral', 'IVA 12%', 'Retenciones', 'Formularios SAT', 'Cierre anual'],
     available: false,
@@ -59,7 +61,7 @@ const courses: Course[] = [
     subtitle: 'Emisión y Anulación',
     description:
       'Domina la facturación electrónica en línea: cómo emitir, anular, tipos de DTE y obligaciones del contribuyente.',
-    duration: '1h',
+    duration: '8 horas',
     level: 'Básico',
     topics: ['Qué es FEL', 'Tipos de DTE', 'Emisión práctica', 'Anulación', 'Errores frecuentes'],
     available: false,
@@ -71,9 +73,45 @@ const courses: Course[] = [
     subtitle: 'Liquidación Mensual',
     description:
       'Aprende a calcular la planilla, cuotas IGSS patronal y laboral, IRTRA, INTECAP y liquidaciones laborales.',
-    duration: '1h 30min',
+    duration: '8 horas',
     level: 'Intermedio',
     topics: ['Cálculo de salarios', 'Cuotas IGSS', 'IRTRA e INTECAP', 'Aguinaldo y bono 14', 'Liquidaciones'],
+    available: false,
+  },
+  {
+    id: 'estrategia-tributaria',
+    category: 'Planificación',
+    title: 'Estrategia y Planificación Tributaria',
+    subtitle: 'Optimización Fiscal Legal',
+    description:
+      'Aprende a planificar la carga tributaria de tu empresa de forma legal: análisis de regímenes, proyecciones y estrategias de cumplimiento.',
+    duration: '40 horas',
+    level: 'Avanzado',
+    topics: ['Análisis de regímenes', 'Proyecciones fiscales', 'Planificación ISR', 'Costos y deducciones', 'Cumplimiento normativo'],
+    available: false,
+  },
+  {
+    id: 'taller-perito-contador',
+    category: 'Formación',
+    title: 'Taller de Perito Contador',
+    subtitle: 'Fundamentos Contables',
+    description:
+      'Taller integral para estudiantes y profesionales de la carrera de Perito Contador: contabilidad, registros, estados financieros y más.',
+    duration: '8 horas',
+    level: 'Básico-Intermedio',
+    topics: ['Partida doble', 'Libros contables', 'Estados financieros', 'Ajustes', 'Cierre contable'],
+    available: false,
+  },
+  {
+    id: 'taller-odoo-basico',
+    category: 'Software',
+    title: 'Taller de Odoo Básico',
+    subtitle: 'ERP para tu Negocio',
+    description:
+      'Introducción práctica al sistema ERP Odoo: facturación, contabilidad, inventario y gestión de clientes desde cero.',
+    duration: '20 horas',
+    level: 'Básico',
+    topics: ['Configuración inicial', 'Facturación', 'Contabilidad básica', 'Inventario', 'Clientes y proveedores'],
     available: false,
   },
 ];
@@ -118,8 +156,8 @@ export function Recursos({ isDark, onOpen }: RecursosProps) {
             </span>
           </h2>
           <p className={`text-lg max-w-2xl mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Conocimiento contable aplicable para estudiantes y profesionales. Talleres gratuitos
-            de apoyo social para la carrera de Perito Contador.
+            Conocimiento contable aplicable para estudiantes y profesionales. Talleres especializados
+            de la carrera de Perito Contador y gestión empresarial.
           </p>
         </div>
 
@@ -138,7 +176,7 @@ export function Recursos({ isDark, onOpen }: RecursosProps) {
         {/* Bottom note */}
         <div className="text-center mt-12 reveal">
           <p className={`text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            Más talleres próximamente · Programa de apoyo educativo para institutos de la carrera Perito Contador
+            Más talleres próximamente · Programa de capacitación para empresas, institutos y profesionales
           </p>
         </div>
       </div>
@@ -179,7 +217,7 @@ function CourseCard({
 
       <div className="p-6">
         {/* Category + badge row */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <span
             className="text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full"
             style={{
@@ -190,7 +228,7 @@ function CourseCard({
           >
             {course.category}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {course.badge && (
               <span
                 className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -215,6 +253,24 @@ function CourseCard({
             )}
           </div>
         </div>
+
+        {/* Social program badge */}
+        {course.socialProgram && (
+          <div className="mb-3">
+            <span
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+              style={{
+                background: 'rgba(16,185,129,0.1)',
+                color: '#10b981',
+                border: '1px solid rgba(16,185,129,0.25)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              <UsersIcon size={11} />
+              Programa de Apoyo Social a Entidades Educativas
+            </span>
+          </div>
+        )}
 
         {/* Title */}
         <h3
@@ -242,12 +298,6 @@ function CourseCard({
             <StarIcon size={13} className="text-emerald-400" />
             <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               {course.level}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <UsersIcon size={13} className="text-sky-400" />
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Gratuito
             </span>
           </div>
         </div>
@@ -293,6 +343,7 @@ function CourseCard({
               cursor: 'not-allowed',
             }}
           >
+            <LockIcon size={13} />
             Próximamente disponible
           </div>
         )}

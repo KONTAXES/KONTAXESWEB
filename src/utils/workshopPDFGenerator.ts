@@ -1,10 +1,26 @@
 /**
  * Generates a downloadable PDF for the Pequeño Contribuyente workshop.
- * Uses jspdf (text-based) with a KONTAXES watermark on every page.
+ * Uses jspdf with a logo watermark on every page and note lines per section.
  */
+
+async function loadImageAsDataUrl(path: string): Promise<string> {
+  const blob = await fetch(path).then(r => r.blob());
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 export async function generateWorkshopPDF(): Promise<void> {
   const { jsPDF } = await import('jspdf');
+
+  // Load logos before building doc
+  const [logoBlack, logoWhite] = await Promise.all([
+    loadImageAsDataUrl('/K_black.png').catch(() => null),
+    loadImageAsDataUrl('/K_white.png').catch(() => null),
+  ]);
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
 
@@ -14,22 +30,34 @@ export async function generateWorkshopPDF(): Promise<void> {
   const MR = 20;
   const TW = PW - ML - MR;
 
-  // ── Color palette ─────────────────────────────────────────────────────────
+  // ── Color palette ──────────────────────────────────────────────────────────
   const PURPLE: [number, number, number] = [124, 58, 237];
   const EMERALD: [number, number, number] = [16, 185, 129];
   const DARK: [number, number, number] = [15, 10, 30];
   const GRAY: [number, number, number] = [100, 100, 120];
   const LIGHT_GRAY: [number, number, number] = [230, 228, 240];
 
-  // ── Watermark helper ──────────────────────────────────────────────────────
-  const addWatermark = () => {
-    doc.saveGraphicsState();
-    doc.setGState(new (doc as any).GState({ opacity: 0.06 }));
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(72);
-    doc.setTextColor(...PURPLE);
-    doc.text('KONTAXES', PW / 2, PH / 2, { align: 'center', angle: 45 });
-    doc.restoreGraphicsState();
+  // ── Logo watermark helper ─────────────────────────────────────────────────
+  const addWatermark = (isDarkPage = false) => {
+    const logoData = isDarkPage ? logoWhite : logoBlack;
+    if (logoData) {
+      const size = 130;
+      const x = (PW - size) / 2;
+      const y = (PH - size) / 2;
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.04 }));
+      doc.addImage(logoData, 'PNG', x, y, size, size);
+      doc.restoreGraphicsState();
+    } else {
+      // Fallback: text watermark
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(72);
+      doc.setTextColor(...PURPLE);
+      doc.text('KONTAXES', PW / 2, PH / 2, { align: 'center', angle: 45 });
+      doc.restoreGraphicsState();
+    }
   };
 
   // ── Header helper ─────────────────────────────────────────────────────────
@@ -92,7 +120,6 @@ export async function generateWorkshopPDF(): Promise<void> {
     const ROW_H = 7;
     const startX = ML;
 
-    // Header row
     doc.setFillColor(...PURPLE);
     doc.rect(startX, y, TW, ROW_H, 'F');
     doc.setFont('helvetica', 'bold');
@@ -105,13 +132,12 @@ export async function generateWorkshopPDF(): Promise<void> {
     });
     y += ROW_H;
 
-    // Data rows
     rows.forEach((row, ri) => {
       doc.setFillColor(ri % 2 === 0 ? 248 : 255, ri % 2 === 0 ? 246 : 255, ri % 2 === 0 ? 255 : 255);
       doc.rect(startX, y, TW, ROW_H, 'F');
       doc.setDrawColor(...LIGHT_GRAY);
       doc.rect(startX, y, TW, ROW_H, 'S');
-      doc.setFont('helvetica', ri === 0 ? 'bold' : 'normal');
+      doc.setFont('helvetica', ri === rows.length - 1 ? 'bold' : 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(40, 35, 60);
       cx = startX + 2;
@@ -128,7 +154,6 @@ export async function generateWorkshopPDF(): Promise<void> {
   const infoBox = (y: number, text: string, color: [number, number, number] = PURPLE): number => {
     const lines = doc.splitTextToSize(text, TW - 12) as string[];
     const h = lines.length * 5.5 + 6;
-    // Light tinted background (baked-in tint, no alpha API needed)
     const bg: [number, number, number] = [
       Math.round(255 - (255 - color[0]) * 0.08),
       Math.round(255 - (255 - color[1]) * 0.08),
@@ -149,45 +174,80 @@ export async function generateWorkshopPDF(): Promise<void> {
     return y + h + 4;
   };
 
+  // ── Note lines helper (for handwritten annotations) ───────────────────────
+  const addNoteLines = (y: number, count = 4): number => {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(180, 170, 210);
+    doc.text('Notas:', ML, y);
+    y += 4;
+    for (let i = 0; i < count; i++) {
+      doc.setDrawColor(210, 205, 230);
+      doc.setLineWidth(0.25);
+      doc.setLineDashPattern([1.5, 1.5], 0);
+      doc.line(ML, y + 5, PW - MR, y + 5);
+      doc.setLineDashPattern([], 0);
+      y += 8;
+    }
+    return y + 2;
+  };
+
   const TOTAL_PAGES = 8;
   let p = 1;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 1 — Cover
   // ═══════════════════════════════════════════════════════════════════════════
-  addWatermark();
-  addHeader(p++, TOTAL_PAGES);
-  addFooter();
+  // Cover has dark background — use white logo watermark
+  addWatermark(true);
 
-  // Cover gradient block
+  // Cover gradient block (drawn over watermark so only subtle glow shows through)
   doc.setFillColor(...DARK);
   doc.rect(0, 0, PW, PH, 'F');
 
+  // Re-add watermark on top of dark fill at very low opacity
+  if (logoWhite) {
+    const size = 140;
+    const x = (PW - size) / 2;
+    const y_wm = (PH - size) / 2 + 10;
+    doc.saveGraphicsState();
+    doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
+    doc.addImage(logoWhite, 'PNG', x, y_wm, size, size);
+    doc.restoreGraphicsState();
+  }
+
+  // Large cover logo
+  if (logoWhite) {
+    const logoW = 38;
+    const logoH = 38;
+    doc.addImage(logoWhite, 'PNG', (PW - logoW) / 2, 28, logoW, logoH);
+  }
+
   // Purple accent bar
   doc.setFillColor(...PURPLE);
-  doc.rect(0, 70, 4, 60, 'F');
+  doc.rect(0, 85, 4, 55, 'F');
 
   // Title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(28);
   doc.setTextColor(255, 255, 255);
-  doc.text('Declaración de', PW / 2, 90, { align: 'center' });
-  doc.text('Impuestos', PW / 2, 110, { align: 'center' });
+  doc.text('Declaración de', PW / 2, 100, { align: 'center' });
+  doc.text('Impuestos', PW / 2, 118, { align: 'center' });
 
   doc.setFontSize(16);
   doc.setTextColor(...EMERALD);
-  doc.text('Pequeño Contribuyente', PW / 2, 128, { align: 'center' });
+  doc.text('Pequeño Contribuyente', PW / 2, 134, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(160, 150, 200);
-  doc.text('Taller de Apoyo Educativo para Perito Contador', PW / 2, 143, { align: 'center' });
-  doc.text('Duración: 1h 30min · Nivel: Básico-Intermedio', PW / 2, 151, { align: 'center' });
+  doc.text('Taller de Apoyo Educativo para Perito Contador', PW / 2, 148, { align: 'center' });
+  doc.text('Duración: 1h 30min · Nivel: Básico-Intermedio', PW / 2, 156, { align: 'center' });
 
   // Divider
   doc.setDrawColor(...PURPLE);
   doc.setLineWidth(0.5);
-  doc.line(ML + 30, 160, PW - MR - 30, 160);
+  doc.line(ML + 30, 165, PW - MR - 30, 165);
 
   // Topics summary
   doc.setFont('helvetica', 'bold');
@@ -201,7 +261,7 @@ export async function generateWorkshopPDF(): Promise<void> {
   ];
   topics.forEach((t, i) => {
     const col = i % 2 === 0 ? ML + 10 : PW / 2 + 5;
-    const row = 170 + Math.floor(i / 2) * 9;
+    const row = 175 + Math.floor(i / 2) * 9;
     doc.setFillColor(...EMERALD);
     doc.circle(col - 4, row - 1, 1.2, 'F');
     doc.text(t, col, row);
@@ -217,44 +277,48 @@ export async function generateWorkshopPDF(): Promise<void> {
   doc.setTextColor(100, 90, 140);
   doc.text('De Números a Decisiones · kontaxes.com', PW / 2, PH - 14, { align: 'center' });
 
+  p++;
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 2 — Generalidades + Límite de Facturación
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
   let y = 22;
   y = sectionHeading(y, '1. Generalidades del Pequeño Contribuyente');
-  y = infoBox(y, '¿Quién es el Pequeño Contribuyente? Persona individual o jurídica cuyas ventas anuales no superan ~Q500,000 (125 salarios mínimos anuales, Decreto 31-2024). Tributa únicamente IVA a tasa reducida del 5% sobre el total de ventas. Base legal: Decreto 27-92, Artículos 45-50 de la Ley del IVA.');
+  y = infoBox(y, '¿Quién es el Pequeño Contribuyente? Persona individual o jurídica cuyas ventas anuales no superan 125 salarios mínimos (~Q500,285 para 2026, Decreto 31-2024). Tributa únicamente IVA a tasa reducida del 5% sobre el total de ventas. Base legal: Decreto 27-92, Artículos 45-50 de la Ley del IVA.');
 
   y = bullet(y, 'No paga ISR por este régimen (impuesto sobre la renta separado)');
   y = bullet(y, 'Emite facturas FEL (Factura Electrónica en Línea) ante SAT');
   y = bullet(y, 'Declara mensualmente usando el Formulario SAT-2046');
-  y = bullet(y, 'Presenta su declaración entre el 1 y 15 del mes siguiente');
+  y = bullet(y, 'Plazo: hasta el último día calendario del mes siguiente');
   y = bullet(y, 'Ideal para comerciantes individuales, vendedores, prestadores de servicios pequeños');
   y = bullet(y, 'No lleva contabilidad completa obligatoria (solo libro de ventas)');
 
-  y += 6;
+  y += 4;
   y = sectionHeading(y, '2. Límite de Facturación Anual');
-  y = infoBox(y, 'El límite anual para permanecer en este régimen es Q500,000 en ventas o ingresos. Al superar este límite, el contribuyente DEBE cambiarse al Régimen Opcional Simplificado u otro régimen dentro de los 30 días siguientes al mes en que lo superó.', EMERALD);
+  y = infoBox(y, 'Decreto 31-2024: el límite para permanecer en este régimen es 125 salarios mínimos anuales (~Q500,285 para 2026). Al superar este límite, el contribuyente DEBE cambiarse al Régimen Opcional Simplificado dentro de los 30 días siguientes.', EMERALD);
 
   y = table(y,
     ['Situación', 'Acción requerida'],
     [
-      ['Ventas ≤ ~Q500,000 / año', 'Permanece como Pequeño Contribuyente'],
-      ['Ventas > ~Q500,000 en algún mes', 'Cambio de régimen en ese período'],
+      ['Ventas ≤ 125 salarios mínimos/año', 'Permanece como Pequeño Contribuyente'],
+      ['Supera el límite en algún mes', 'Cambio de régimen en ese período'],
       ['No notifica el cambio', 'Multa + recargo por evasión'],
     ],
     [110, 66],
   );
 
+  y = addNoteLines(y, 3);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 3 — Marco Legal
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
@@ -265,32 +329,37 @@ export async function generateWorkshopPDF(): Promise<void> {
     {
       title: 'Decreto 27-92 — Ley del IVA',
       items: [
-        'Art. 47: Define al Pequeño Contribuyente',
-        'Art. 48: Establece la tasa del 5% sobre ventas totales',
-        'Art. 49: Obligación de declarar mensualmente',
+        'Arts. 45-50: Régimen del Pequeño Contribuyente, tasa 5%, obligación de declarar mensualmente',
+        'La base imponible es el total de ventas (no se deducen compras ni gastos)',
+      ],
+    },
+    {
+      title: 'Decreto 31-2024 — Reforma Nov 2024',
+      items: [
+        'Modifica el límite anual de Q500,000 fijo a 125 salarios mínimos anuales (~Q500,285 para 2026)',
+        'Actualización automática cada año según salario mínimo vigente',
       ],
     },
     {
       title: 'Reglamento del IVA (Acuerdo 311-97)',
       items: [
-        'Regula el procedimiento de declaración y pago',
-        'Define los plazos: hasta el último día calendario del mes siguiente',
-        'Establece la forma de llevar el libro de ventas',
+        'Plazos: hasta el último día calendario del mes siguiente al período declarado',
+        'Ejemplo: IVA de abril → declarar hasta el 31 de mayo',
+        'Establece la forma de llevar el libro electrónico de ventas (LET)',
       ],
     },
     {
       title: 'Código Tributario (Decreto 6-91)',
       items: [
-        'Art. 88: Define la sanción por omisión de declaración',
-        'Art. 92-93: Multas, intereses y mora tributaria',
-        'Art. 154: Procedimiento de rectificación',
+        'Art. 58: Intereses resarcitorios sobre impuestos no pagados',
+        'Art. 92: Mora y recargos por atraso en el pago',
+        'Art. 94: Omiso — Q7.50 por día de atraso, máximo Q150 por declaración',
       ],
     },
     {
       title: 'Ley FEL — Resolución SAT-DSI-1069-2018',
       items: [
         'Obliga el uso de facturas electrónicas en línea (FEL)',
-        'Elimina el uso de facturas físicas autorizadas',
         'El SAT verifica las transacciones en tiempo real',
       ],
     },
@@ -306,11 +375,13 @@ export async function generateWorkshopPDF(): Promise<void> {
     y += 3;
   });
 
+  y = addNoteLines(y, 3);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 4 — Cálculo de Impuestos
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
@@ -326,7 +397,7 @@ export async function generateWorkshopPDF(): Promise<void> {
   doc.text('IVA A PAGAR  =  Total Ventas del Mes  ×  5%', PW / 2, y + 14, { align: 'center' });
   y += 28;
 
-  y = infoBox(y, 'Nota importante: la base imponible es el TOTAL de ventas (con IVA incluido en el precio). No se deducen compras ni gastos. El 5% ya está incluido en el precio de venta.', PURPLE);
+  y = infoBox(y, 'La base imponible es el TOTAL de ventas (con IVA incluido en el precio). No se deducen compras ni gastos. El 5% ya está incluido en el precio de venta.', PURPLE);
 
   y = sectionHeading(y, 'Ejemplo práctico — Octubre 2024');
 
@@ -339,18 +410,20 @@ export async function generateWorkshopPDF(): Promise<void> {
       ['F-004', 'Cliente D', 'Q 4,600.00'],
       ['F-005', 'Cliente E', 'Q 1,000.00'],
       ['TOTAL VENTAS', '', 'Q 13,150.00'],
-      ['IVA A PAGAR (5%)', '', 'Q    657.50'],
+      ['IVA A PAGAR (5%)', '', 'Q 657.50'],
     ],
     [50, 90, 36],
   );
 
-  y = infoBox(y, 'Verificación: Q13,150.00 × 0.05 = Q657.50 · Plazo de pago: hasta el 30 de noviembre 2024 (último día del mes siguiente) · Formulario: SAT-2046', EMERALD);
+  y = infoBox(y, 'Plazo de pago: hasta el 30 de noviembre 2024 (último día del mes siguiente). Formulario: SAT-2046 en portal.sat.gob.gt', EMERALD);
+
+  y = addNoteLines(y, 4);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 5 — Formulario SAT-2046
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
@@ -386,11 +459,13 @@ export async function generateWorkshopPDF(): Promise<void> {
     y += descLines.length * 4.5 + 10;
   });
 
+  y = addNoteLines(y, 4);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 6 — Libros contables y LET
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
@@ -399,7 +474,7 @@ export async function generateWorkshopPDF(): Promise<void> {
 
   const halfW = TW / 2 - 4;
 
-  // Libro de Ventas (manual / Excel)
+  // Libro de Ventas
   doc.setFillColor(248, 246, 255);
   doc.rect(ML, y, halfW, 80, 'F');
   doc.setDrawColor(...PURPLE);
@@ -460,11 +535,13 @@ export async function generateWorkshopPDF(): Promise<void> {
 
   y = infoBox(y, 'El LET reemplaza los libros físicos sellados. La plantilla se descarga en portal.sat.gob.gt → Herramientas → LET Pequeño Contribuyente. Debe subirse el mismo mes en que vence la declaración.', EMERALD);
 
+  y = addNoteLines(y, 4);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 7 — Omisos y Rectificaciones
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
@@ -474,42 +551,44 @@ export async function generateWorkshopPDF(): Promise<void> {
   y = infoBox(y, '¡ATENCIÓN! No presentar la declaración mensual a tiempo genera multas, intereses y mora automáticos. El SAT puede detectar omisos mediante el cruce de información FEL.', [239, 68, 68]);
 
   y = table(y,
-    ['Concepto', 'Base legal', 'Monto'],
+    ['Concepto', 'Detalle', 'Base legal'],
     [
-      ['Multa por omisión', 'Art. 94 Código Tributario', 'Q1,000 mínimo'],
-      ['Recargo por mora', 'Art. 92 Código Tributario', '1.5% mensual sobre el impuesto'],
-      ['Intereses', 'Art. 58 Código Tributario', 'Tasa interés legal vigente'],
-      ['Omisión reincidente', 'Art. 94 C.T.', 'Hasta Q5,000 por período'],
+      ['Omiso (multa por día)', 'Q 7.50 por cada día de atraso · máximo Q 150 por declaración', 'Art. 94 C.T.'],
+      ['Interés resarcitorio', 'Calculado sobre el impuesto no pagado, según tasa legal vigente', 'Art. 58 C.T.'],
+      ['Mora / Recargo', 'Cargo adicional por el tiempo de retraso en el pago', 'Art. 92 C.T.'],
+      ['Rectificación', 'Si declaraste mal, presentás una declaración rectificativa. Costo: Q 15.00', 'Art. 154 C.T.'],
     ],
-    [65, 70, 41],
+    [48, 100, 28],
   );
 
-  y = sectionHeading(y, 'Ejemplo con multas — Impuesto Q400, presentado 2 meses tarde');
+  y = sectionHeading(y, 'Ejemplo — IVA de agosto Q 400, presentado 20 días tarde');
   y = table(y,
     ['Concepto', 'Cálculo', 'Total'],
     [
       ['Impuesto original', 'Base', 'Q 400.00'],
-      ['Multa por omisión', 'Mínimo legal', 'Q 1,000.00'],
-      ['Mora mes 1 (1.5%)', 'Q400 × 1.5%', 'Q 6.00'],
-      ['Mora mes 2 (1.5%)', 'Q406 × 1.5%', 'Q 6.09'],
-      ['TOTAL A PAGAR', '', 'Q 1,412.09'],
+      ['Omiso (20 días × Q7.50)', 'Q7.50 × 20 = Q150 (máximo)', 'Q 150.00'],
+      ['Intereses (aprox.)', 'Tasa legal sobre Q400', '~Q 8.00'],
+      ['Mora (aprox.)', 'Recargo por atraso', '~Q 12.00'],
+      ['TOTAL A PAGAR', '', 'Q 570.00'],
     ],
-    [80, 60, 36],
+    [70, 80, 26],
   );
 
-  y = infoBox(y, 'Conclusión: una deuda de Q400 se convirtió en Q1,412 — más de 3.5 veces el impuesto original. Declarar a tiempo siempre es la mejor decisión.', [239, 68, 68]);
+  y = infoBox(y, 'Una deuda de Q400 se convirtió en Q570 — Q170 extra que podías ahorrarte. Declarar a tiempo siempre es la mejor decisión. Recuerda: si quieres corregir una declaración ya presentada, el costo es Q15.', [239, 68, 68]);
 
-  y = sectionHeading(y, 'Rectificaciones');
-  y = bullet(y, 'Una declaración ya presentada se puede corregir mediante una DECLARACIÓN RECTIFICATORIA');
-  y = bullet(y, 'Ingresar a Agencia Virtual → Declaraciones → Rectificar → seleccionar el período');
-  y = bullet(y, 'Si la rectificación aumenta el impuesto, se calculan intereses desde la fecha original');
-  y = bullet(y, 'Si disminuye el impuesto, se puede solicitar devolución o crédito');
+  y = sectionHeading(y, 'Proceso de Rectificación');
+  y = bullet(y, 'Agencia Virtual → Declaraciones → Rectificar → seleccionar el período a corregir');
+  y = bullet(y, 'Si el nuevo impuesto es mayor, se calculan intereses desde la fecha original de vencimiento');
+  y = bullet(y, 'El costo fijo de rectificar es Q 15.00');
+  y = bullet(y, 'Si el nuevo impuesto es menor, puedes solicitar devolución o crédito al SAT');
+
+  y = addNoteLines(y, 3);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 8 — Agencia Virtual + Caso Práctico
   // ═══════════════════════════════════════════════════════════════════════════
   doc.addPage();
-  addWatermark();
+  addWatermark(false);
   addHeader(p++, TOTAL_PAGES);
   addFooter();
 
@@ -526,10 +605,10 @@ export async function generateWorkshopPDF(): Promise<void> {
   ];
   avSteps.forEach((s, i) => { y = bullet(y, `${i + 1}. ${s}`); });
 
-  y += 8;
+  y += 6;
   y = sectionHeading(y, 'Caso Práctico — Comercial San José, Noviembre 2024');
 
-  y = infoBox(y, 'Instrucción: Con los datos de las siguientes facturas, calcular el IVA a pagar, llenar el resumen del formulario SAT-2046 y determinar si hay multa si se presenta el 20 de diciembre.', PURPLE);
+  y = infoBox(y, 'Instrucción: Con los datos de las siguientes facturas, calcular el IVA a pagar, completar el resumen del formulario SAT-2046 y determinar si hay multa si se presenta el 20 de diciembre.', PURPLE);
 
   y = table(y,
     ['No. Factura', 'Fecha', 'Cliente', 'Monto Venta'],
@@ -557,7 +636,8 @@ export async function generateWorkshopPDF(): Promise<void> {
   ];
   questions.forEach((q, i) => { y = bullet(y, `${i + 1}. ${q}`); });
 
-  // ── Save ──────────────────────────────────────────────────────────────────
-  const filename = `KONTAXES-Pequeno-Contribuyente-Material.pdf`;
-  doc.save(filename);
+  y = addNoteLines(y, 3);
+
+  // ── Save ─────────────────────────────────────────────────────────────────
+  doc.save('KONTAXES-Pequeno-Contribuyente-Material.pdf');
 }
