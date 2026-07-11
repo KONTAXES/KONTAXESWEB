@@ -28,7 +28,7 @@ const courses: Course[] = [
     subtitle: 'Pequeño Contribuyente',
     description:
       'Aprende a declarar el IVA como Pequeño Contribuyente: cálculo, formulario SAT-2046, libros contables y qué pasa si no declaras.',
-    duration: '8 horas',
+    duration: '1 hora',
     level: 'Básico-Intermedio',
     topics: [
       'Generalidades del régimen',
@@ -43,15 +43,39 @@ const courses: Course[] = [
     socialProgram: true,
   },
   {
+    id: 'regimen-general',
+    category: 'Impuestos',
+    title: 'Régimen General',
+    subtitle: 'ISR + IVA 12%',
+    description:
+      'Comprende el régimen general de tributación: ISR mensual, IVA 12%, retenciones, deducciones y cierre anual.',
+    duration: '4 horas',
+    level: 'Intermedio',
+    topics: ['ISR mensual', 'IVA 12%', 'Retenciones', 'Deducciones', 'Cierre anual'],
+    available: false,
+  },
+  {
     id: 'regimen-opcional',
     category: 'Impuestos',
     title: 'Régimen Opcional Simplificado',
     subtitle: 'ISR + IVA 12%',
     description:
-      'Comprende cómo funciona el régimen opcional: ISR trimestral, IVA mensual, retenciones y cierre anual.',
-    duration: '8 horas',
+      'Comprende cómo funciona el régimen opcional simplificado: ISR trimestral, IVA mensual, retenciones y cierre anual.',
+    duration: '4 horas',
     level: 'Intermedio',
     topics: ['ISR trimestral', 'IVA 12%', 'Retenciones', 'Formularios SAT', 'Cierre anual'],
+    available: false,
+  },
+  {
+    id: 'regimen-trimestral',
+    category: 'Impuestos',
+    title: 'Régimen Trimestral',
+    subtitle: 'ISR + IVA 12%',
+    description:
+      'Aprende el régimen trimestral: declaraciones trimestrales de ISR, IVA mensual, pagos a cuenta y cierre fiscal anual.',
+    duration: '8 horas',
+    level: 'Intermedio',
+    topics: ['ISR trimestral', 'IVA 12%', 'Pagos a cuenta', 'Formularios SAT', 'Cierre fiscal'],
     available: false,
   },
   {
