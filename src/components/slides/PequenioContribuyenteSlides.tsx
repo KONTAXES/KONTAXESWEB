@@ -222,7 +222,7 @@ const Slide01Cover: React.FC = () => (
     <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 820 }}>
       <img src="/K_white.png" alt="KONTAXES" className="ps-up"
         style={{ height: 'clamp(3rem, 7vw, 5rem)', width: 'auto', marginBottom: 'clamp(1rem, 3vw, 2rem)', filter: 'drop-shadow(0 0 32px rgba(147,51,234,0.8))' }} />
-      <div className="ps-up ps-d1" style={badge('#6ee7b7', 'rgba(16,185,129,0.12)', 'rgba(16,185,129,0.3)')}>
+      <div className="ps-up ps-d1" style={badge('#059669', 'rgba(16,185,129,0.12)', 'rgba(16,185,129,0.3)')}>
         <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
         Apoyo Social · Entidades Educativas · Perito Contador
       </div>
@@ -282,7 +282,7 @@ const Slide02Agenda: React.FC = () => {
       </div>
       <div className="ps-up ps-d9" style={{ marginTop: 14, ...panel('rgba(16,185,129,0.3)', 'rgba(16,185,129,0.07)'), display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
-        <span style={{ color: '#6ee7b7', fontWeight: 700, fontSize: 'clamp(0.9rem, 1.9vw, 1.1rem)' }}>
+        <span style={{ color: '#059669', fontWeight: 700, fontSize: 'clamp(0.9rem, 1.9vw, 1.1rem)' }}>
           30 minutos finales — Caso práctico y preguntas
         </span>
       </div>
@@ -298,9 +298,9 @@ const Slide04Definicion: React.FC = () => {
   const t = useT();
   const features = [
     { color: '#c084fc', border: 'rgba(192,132,252,0.3)', bg: 'rgba(192,132,252,0.06)', tag: 'Tasa', title: '5% sobre lo que vendes', desc: 'Cada mes calculas el 5% del total de tus ventas. Eso es todo lo que pagas de IVA.' },
-    { color: '#6ee7b7', border: 'rgba(110,231,183,0.3)', bg: 'rgba(110,231,183,0.06)', tag: 'Declaración', title: 'Formulario mensual', desc: 'Una vez al mes llenas el formulario SAT-2046 y pagas. Proceso sencillo y digital.' },
-    { color: '#60a5fa', border: 'rgba(96,165,250,0.3)', bg: 'rgba(96,165,250,0.06)', tag: 'Facturación', title: 'Facturas electrónicas FEL', desc: 'Cada venta debe tener su factura electrónica. Se emite desde el sistema SAT o un certificador.' },
-    { color: '#fbbf24', border: 'rgba(251,191,36,0.3)', bg: 'rgba(251,191,36,0.06)', tag: 'Límite', title: '~Q 500,000 al año', desc: 'Si ganas más de eso en el año, te debes cambiar a otro régimen tributario.' },
+    { color: '#059669', border: 'rgba(110,231,183,0.3)', bg: 'rgba(110,231,183,0.06)', tag: 'Declaración', title: 'Formulario mensual', desc: 'Una vez al mes llenas el formulario SAT-2046 y pagas. Proceso sencillo y digital.' },
+    { color: '#2563eb', border: 'rgba(37,99,235,0.35)', bg: 'rgba(37,99,235,0.07)', tag: 'Facturación', title: 'Facturas electrónicas FEL', desc: 'Cada venta debe tener su factura electrónica. Se emite desde el sistema SAT o un certificador.' },
+    { color: '#ea580c', border: 'rgba(234,88,12,0.35)', bg: 'rgba(234,88,12,0.07)', tag: 'Límite', title: '~Q 500,000 al año', desc: 'Si ganas más de eso en el año, te debes cambiar a otro régimen tributario.' },
   ];
   return (
     <div style={{ ...SLIDE_BASE, background: t.bg }}>
@@ -344,7 +344,7 @@ const Slide05Comparacion: React.FC = () => {
             <tr style={{ background: 'linear-gradient(90deg, #6d28d9, #5b21b6)' }}>
               <th style={{ padding: '12px 16px', textAlign: 'left', color: '#e2e8f0', fontWeight: 700, fontSize: 'clamp(0.82rem, 1.7vw, 1rem)' }}>Aspecto</th>
               <th style={{ padding: '12px 16px', textAlign: 'left', color: '#c084fc', fontWeight: 700, fontSize: 'clamp(0.82rem, 1.7vw, 1rem)' }}>Pequeño Contribuyente</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', color: '#93c5fd', fontWeight: 700, fontSize: 'clamp(0.82rem, 1.7vw, 1rem)' }}>Régimen General / Opcional</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', color: '#2563eb', fontWeight: 700, fontSize: 'clamp(0.82rem, 1.7vw, 1rem)' }}>Régimen General / Opcional</th>
             </tr>
           </thead>
           <tbody>
@@ -352,14 +352,14 @@ const Slide05Comparacion: React.FC = () => {
               <tr key={i} style={{ background: i % 2 === 0 ? t.s025 : 'transparent', borderBottom: `1px solid ${t.divider}` }}>
                 <td style={{ padding: '12px 16px', color: t.a60, fontWeight: 600 }}>{asp}</td>
                 <td style={{ padding: '12px 16px', color: '#c084fc', fontWeight: 600 }}>{pc}</td>
-                <td style={{ padding: '12px 16px', color: '#93c5fd' }}>{rg}</td>
+                <td style={{ padding: '12px 16px', color: '#2563eb' }}>{rg}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="ps-up ps-d8" style={{ marginTop: 12, ...panel('rgba(16,185,129,0.3)', 'rgba(16,185,129,0.07)') }}>
-        <p style={{ color: '#6ee7b7', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', fontWeight: 600, margin: 0 }}>
+        <p style={{ color: '#059669', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', fontWeight: 600, margin: 0 }}>
           El Pequeño Contribuyente es la puerta de entrada al sistema tributario formal en Guatemala.
         </p>
       </div>
@@ -391,9 +391,9 @@ const Slide07Limite: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, flex: 1 }}>
           <div className="ps-up ps-d2" style={{ ...panel('rgba(16,185,129,0.3)', 'rgba(16,185,129,0.07)') }}>
             <div style={{ marginBottom: 12 }}>
-              <Tag label="Si no superas el límite" color="#6ee7b7" />
+              <Tag label="Si no superas el límite" color="#059669" />
             </div>
-            <BulletList color="#6ee7b7" items={[
+            <BulletList color="#059669" items={[
               'Sigues pagando el 5% mensual',
               'El proceso no cambia',
               'No hay que notificarle nada a SAT',
@@ -401,18 +401,18 @@ const Slide07Limite: React.FC = () => {
           </div>
           <div className="ps-up ps-d3" style={{ ...panel('rgba(239,68,68,0.3)', 'rgba(239,68,68,0.07)') }}>
             <div style={{ marginBottom: 12 }}>
-              <Tag label="Si superas el límite" color="#fca5a5" />
+              <Tag label="Si superas el límite" color="#ef4444" />
             </div>
-            <BulletList color="#fca5a5" items={[
+            <BulletList color="#ef4444" items={[
               'Debes cambiarte al régimen general',
               'Notifica a SAT dentro del mes',
               'El cambio aplica desde ese período',
             ]} />
           </div>
         </div>
-        <div className="ps-up ps-d5" style={{ ...panel('rgba(245,158,11,0.3)', 'rgba(245,158,11,0.07)'), display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24', flexShrink: 0, marginTop: 6 }} />
-          <span style={{ color: '#fcd34d', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)' }}>
+        <div className="ps-up ps-d5" style={{ ...panel('rgba(234,88,12,0.35)', 'rgba(234,88,12,0.08)'), display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c', flexShrink: 0, marginTop: 6 }} />
+          <span style={{ color: '#f97316', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)' }}>
             <strong>Ejemplo:</strong> Si vendes Q 45,000 por mes, en 11 meses llevas Q 495,000 — cerca del límite. En el mes 12 ya lo superas. ¡Ojo con el acumulado!
           </span>
         </div>
@@ -435,19 +435,19 @@ const Slide09Leyes: React.FC = () => {
       desc: 'Aquí está todo. Los Artículos 45 al 50 explican quiénes son Pequeños Contribuyentes, cuánto pagan (5%) y cómo deben declarar.',
     },
     {
-      color: '#6ee7b7', border: 'rgba(110,231,183,0.3)', bg: 'rgba(110,231,183,0.07)',
+      color: '#059669', border: 'rgba(110,231,183,0.3)', bg: 'rgba(110,231,183,0.07)',
       tag: 'Reforma 2024',
       titulo: 'Decreto 31-2024 — Reforma al IVA',
       desc: 'Aprobado el 19 de noviembre de 2024. Cambió el límite de ingresos: ya no es una cantidad fija, ahora se calcula con base en 125 salarios mínimos anuales (~Q 500,000 para 2026).',
     },
     {
-      color: '#60a5fa', border: 'rgba(96,165,250,0.3)', bg: 'rgba(96,165,250,0.07)',
+      color: '#2563eb', border: 'rgba(37,99,235,0.35)', bg: 'rgba(37,99,235,0.08)',
       tag: 'Código Tributario',
       titulo: 'Decreto 6-91 — Código Tributario',
       desc: 'Regula las sanciones. Si no declaras, aquí están las multas (Art. 94), los intereses (Art. 58) y la mora (Art. 92).',
     },
     {
-      color: '#fbbf24', border: 'rgba(251,191,36,0.3)', bg: 'rgba(251,191,36,0.07)',
+      color: '#ea580c', border: 'rgba(234,88,12,0.35)', bg: 'rgba(234,88,12,0.08)',
       tag: 'Facturación',
       titulo: 'Resolución SAT — Sistema FEL',
       desc: 'Todas las facturas deben ser electrónicas. SAT puede ver en tiempo real cuánto estás vendiendo, así que los datos deben coincidir con tu declaración.',
@@ -499,20 +499,20 @@ const Slide11Formula: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, flex: 1 }}>
           <div className="ps-up ps-d2" style={{ ...panel('rgba(239,68,68,0.3)', 'rgba(239,68,68,0.06)') }}>
             <div style={{ marginBottom: 12 }}>
-              <Tag label="NO se incluye" color="#fca5a5" />
+              <Tag label="NO se incluye" color="#ef4444" />
             </div>
-            <BulletList color="#fca5a5" items={['Tus compras del mes', 'Tus gastos operativos', 'Costo de lo que vendiste']} />
+            <BulletList color="#ef4444" items={['Tus compras del mes', 'Tus gastos operativos', 'Costo de lo que vendiste']} />
           </div>
           <div className="ps-up ps-d3" style={{ ...panel('rgba(16,185,129,0.3)', 'rgba(16,185,129,0.06)') }}>
             <div style={{ marginBottom: 12 }}>
-              <Tag label="SÍ se declara" color="#6ee7b7" />
+              <Tag label="SÍ se declara" color="#059669" />
             </div>
-            <BulletList color="#6ee7b7" items={['Todas las ventas del mes', 'Servicios prestados', 'Total emitido en facturas FEL']} />
+            <BulletList color="#059669" items={['Todas las ventas del mes', 'Servicios prestados', 'Total emitido en facturas FEL']} />
           </div>
         </div>
-        <div className="ps-up ps-d5" style={{ ...panel('rgba(245,158,11,0.3)', 'rgba(245,158,11,0.07)'), display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24', flexShrink: 0, marginTop: 6 }} />
-          <span style={{ color: '#fcd34d', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)' }}>
+        <div className="ps-up ps-d5" style={{ ...panel('rgba(234,88,12,0.35)', 'rgba(234,88,12,0.08)'), display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c', flexShrink: 0, marginTop: 6 }} />
+          <span style={{ color: '#f97316', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)' }}>
             <strong>Plazo de pago:</strong> Hasta el último día calendario del mes siguiente.
             Ejemplo: el IVA de abril se paga hasta el <strong>31 de mayo</strong>.
           </span>
@@ -558,7 +558,7 @@ const Slide12Ejemplo: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         {[
           ['Total facturado', 'Q 13,150.00', t.t2,    t.s08],
-          ['Tasa aplicable',  '× 5%',        '#fbbf24','rgba(245,158,11,0.1)'],
+          ['Tasa aplicable',  '× 5%',        '#ea580c','rgba(245,158,11,0.1)'],
           ['IVA A PAGAR',     'Q 657.50',    '#10b981','rgba(16,185,129,0.12)'],
         ].map(([label, value, color, bg], i) => (
           <div key={i} className={`ps-up ps-d${i + 3}`}
@@ -596,8 +596,8 @@ const Slide14Pasos: React.FC = () => {
       ]} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 16 }}>
         {[
-          ['#fbbf24', 'Plazo', 'Hasta el último día del mes siguiente'],
-          ['#60a5fa', 'Pago', 'BancaSAT · Bancos habilitados · En línea'],
+          ['#ea580c', 'Plazo', 'Hasta el último día del mes siguiente'],
+          ['#2563eb', 'Pago', 'BancaSAT · Bancos habilitados · En línea'],
           ['#c084fc', 'Constancia', 'Guárdala siempre — es tu prueba de pago'],
         ].map(([color, label, desc], i) => (
           <div key={i} className={`ps-up ps-d${i + 7}`}
@@ -622,13 +622,13 @@ const Slide16Libros: React.FC = () => {
       <SlideTitle>Libro de Ventas y LET — Libro Electrónico Tributario</SlideTitle>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, flex: 1 }}>
         <div className="ps-up ps-d1" style={{ ...panel('rgba(16,185,129,0.35)', 'rgba(16,185,129,0.07)'), display: 'flex', flexDirection: 'column', gap: 14, borderTop: '3px solid #10b981' }}>
-          <Tag label="Libro de Ventas — Excel" color="#6ee7b7" />
+          <Tag label="Libro de Ventas — Excel" color="#059669" />
           <p style={{ color: t.a55, fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
             Registro mensual de todas tus ventas. Lo llevas tú en Excel o en tu sistema contable.
           </p>
           <div style={{ borderTop: '1px solid rgba(16,185,129,0.2)', paddingTop: 12 }}>
             <div style={{ color: t.a60, fontWeight: 600, fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', marginBottom: 10 }}>Columnas básicas:</div>
-            <BulletList color="#6ee7b7" items={[
+            <BulletList color="#059669" items={[
               'Correlativo y fecha',
               'Número de factura FEL',
               'Nombre/NIT del cliente',
@@ -651,9 +651,9 @@ const Slide16Libros: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="ps-up ps-d5" style={{ marginTop: 14, ...panel('rgba(245,158,11,0.3)', 'rgba(245,158,11,0.07)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24', flexShrink: 0, marginTop: 6 }} />
-        <p style={{ color: '#fcd34d', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
+      <div className="ps-up ps-d5" style={{ marginTop: 14, ...panel('rgba(234,88,12,0.35)', 'rgba(234,88,12,0.08)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c', flexShrink: 0, marginTop: 6 }} />
+        <p style={{ color: '#f97316', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
           <strong>¡Importante!</strong> Si no presentas el LET, SAT puede sancionarte aunque hayas pagado el impuesto a tiempo.
         </p>
       </div>
@@ -672,7 +672,7 @@ const Slide18Sanciones: React.FC = () => {
       <SlideTitle>Consecuencias de no declarar a tiempo</SlideTitle>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
         <div className="ps-up ps-d1" style={{ ...panel('rgba(239,68,68,0.3)', 'rgba(239,68,68,0.06)'), borderLeft: '5px solid #ef4444', borderRadius: '0 12px 12px 0' }}>
-          <p style={{ color: '#fca5a5', fontWeight: 700, fontSize: 'clamp(1.05rem, 2.3vw, 1.4rem)', margin: '0 0 6px' }}>
+          <p style={{ color: '#ef4444', fontWeight: 700, fontSize: 'clamp(1.05rem, 2.3vw, 1.4rem)', margin: '0 0 6px' }}>
             OMISO = no presentaste tu declaración en el plazo legal
           </p>
           <p style={{ color: t.a50, fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
@@ -684,7 +684,7 @@ const Slide18Sanciones: React.FC = () => {
             <thead>
               <tr style={{ background: 'linear-gradient(90deg, #991b1b, #7f1d1d)' }}>
                 {['Cargo', 'Cuánto pagas', 'Base legal'].map(h => (
-                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', color: '#fca5a5', fontWeight: 700, fontSize: 'clamp(0.85rem, 1.8vw, 1rem)' }}>{h}</th>
+                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', color: '#ef4444', fontWeight: 700, fontSize: 'clamp(0.85rem, 1.8vw, 1rem)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -695,7 +695,7 @@ const Slide18Sanciones: React.FC = () => {
                 ['Mora / Recargo', 'Cargo adicional por el tiempo de retraso en el pago', 'Art. 92 Cód. Tributario'],
               ].map(([cargo, calc, base], i) => (
                 <tr key={i} style={{ borderBottom: `1px solid ${t.divider}`, background: i % 2 === 0 ? t.s025 : 'transparent' }}>
-                  <td style={{ padding: '11px 14px', color: '#fca5a5', fontWeight: 700 }}>{cargo}</td>
+                  <td style={{ padding: '11px 14px', color: '#ef4444', fontWeight: 700 }}>{cargo}</td>
                   <td style={{ padding: '11px 14px', color: t.t2 }}>{calc}</td>
                   <td style={{ padding: '11px 14px', color: t.a40, fontSize: 'clamp(0.82rem, 1.6vw, 0.95rem)' }}>{base}</td>
                 </tr>
@@ -703,9 +703,9 @@ const Slide18Sanciones: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <div className="ps-up ps-d5" style={{ ...panel('rgba(245,158,11,0.3)', 'rgba(245,158,11,0.07)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24', flexShrink: 0, marginTop: 6 }} />
-          <p style={{ color: '#fcd34d', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
+        <div className="ps-up ps-d5" style={{ ...panel('rgba(234,88,12,0.35)', 'rgba(234,88,12,0.08)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c', flexShrink: 0, marginTop: 6 }} />
+          <p style={{ color: '#f97316', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0 }}>
             <strong>Rectificación:</strong> Si declaraste con datos equivocados, presentás una declaración rectificativa en Agencia Virtual. El costo de rectificar es <strong>Q 15.00</strong>. Aún así, pagarás intereses sobre la diferencia no pagada a tiempo.
           </p>
         </div>
@@ -746,13 +746,13 @@ const Slide19EjemploMulta: React.FC = () => {
             </div>
           </div>
           <div className="ps-up ps-d3" style={{ ...panel('rgba(239,68,68,0.3)', 'rgba(239,68,68,0.07)'), display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Tag label="Lo que pagas tarde (20 días de atraso)" color="#fca5a5" />
+            <Tag label="Lo que pagas tarde (20 días de atraso)" color="#ef4444" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 'clamp(1rem, 2.2vw, 1.3rem)', fontVariantNumeric: 'tabular-nums' }}>
               {[
                 ['IVA original', 'Q 400.00', t.t2],
-                ['Omiso (20 días × Q 7.50)', 'Q 150.00 (máx)', '#fca5a5'],
-                ['Intereses (aprox.)', '~Q 8.00', '#f87171'],
-                ['Mora (aprox.)', '~Q 12.00', '#f87171'],
+                ['Omiso (20 días × Q 7.50)', 'Q 150.00 (máx)', '#ef4444'],
+                ['Intereses (aprox.)', '~Q 8.00', '#dc2626'],
+                ['Mora (aprox.)', '~Q 12.00', '#dc2626'],
               ].map(([label, val, color]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${t.s07}`, paddingBottom: 8 }}>
                   <span style={{ color: t.a55 }}>{label}</span>
@@ -764,9 +764,9 @@ const Slide19EjemploMulta: React.FC = () => {
         </div>
         <div className="ps-up ps-d5" style={{ ...panel('rgba(239,68,68,0.5)', 'rgba(239,68,68,0.1)'), textAlign: 'center' }}>
           <div style={{ color: t.a50, fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', marginBottom: 8 }}>TOTAL A PAGAR (impuesto + cargos)</div>
-          <div style={{ ...SG, fontSize: 'clamp(2.5rem, 7vw, 5rem)', fontWeight: 900, color: '#fca5a5' }}>Q 570.00</div>
+          <div style={{ ...SG, fontSize: 'clamp(2.5rem, 7vw, 5rem)', fontWeight: 900, color: '#ef4444' }}>Q 570.00</div>
           <div style={{ color: t.a45, fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', marginTop: 8 }}>
-            vs. Q 400.00 si hubieras pagado a tiempo — <strong style={{ color: '#fca5a5' }}>Q 170 extra que podías ahorrarte</strong>
+            vs. Q 400.00 si hubieras pagado a tiempo — <strong style={{ color: '#ef4444' }}>Q 170 extra que podías ahorrarte</strong>
           </div>
         </div>
       </div>
@@ -785,12 +785,12 @@ const Slide21AgenciaVirtual: React.FC = () => {
       <SlideTitle>Cómo buscar tus formularios en SAT</SlideTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, flex: 1 }}>
         {[
-          { color: '#60a5fa', tag: 'Paso 1', title: 'Entrar al portal', desc: 'Ve a portal.sat.gob.gt → Agencia Virtual → ingresa con tu NIT y contraseña.' },
+          { color: '#2563eb', tag: 'Paso 1', title: 'Entrar al portal', desc: 'Ve a portal.sat.gob.gt → Agencia Virtual → ingresa con tu NIT y contraseña.' },
           { color: '#c084fc', tag: 'Paso 2', title: 'Buscar declaraciones', desc: 'En el menú elige "Declaraciones" → "Consultar declaraciones presentadas".' },
-          { color: '#6ee7b7', tag: 'Paso 3', title: 'Filtrar por período', desc: 'Selecciona el tipo de impuesto (IVA) y el mes/año que quieres consultar.' },
-          { color: '#fbbf24', tag: 'Paso 4', title: 'Revisar el estado', desc: 'GENERADO = llenaste pero no pagaste · PAGADO = todo correcto · OMISO = no presentaste.' },
+          { color: '#059669', tag: 'Paso 3', title: 'Filtrar por período', desc: 'Selecciona el tipo de impuesto (IVA) y el mes/año que quieres consultar.' },
+          { color: '#ea580c', tag: 'Paso 4', title: 'Revisar el estado', desc: 'GENERADO = llenaste pero no pagaste · PAGADO = todo correcto · OMISO = no presentaste.' },
           { color: '#a78bfa', tag: 'Paso 5', title: 'Descargar constancia', desc: 'Presiona "Imprimir" o "Descargar PDF" en el formulario PAGADO. Esa es tu prueba oficial.' },
-          { color: '#f87171', tag: 'Si hay error', title: 'Llamar a SAT', desc: 'Marca al 1544 o visita el Módulo del Contribuyente. Nunca modifiques los archivos descargados.' },
+          { color: '#dc2626', tag: 'Si hay error', title: 'Llamar a SAT', desc: 'Marca al 1544 o visita el Módulo del Contribuyente. Nunca modifiques los archivos descargados.' },
         ].map((item, i) => (
           <div key={i} className={`ps-up ps-d${Math.min(i + 1, 9)}`}
             style={{ ...panel(t.s07, t.s025), display: 'flex', flexDirection: 'column', gap: 8, borderTop: `3px solid ${item.color}` }}>
@@ -809,13 +809,13 @@ const Slide22Resumen: React.FC = () => {
   const t = useT();
   const puntos = [
     ['#c084fc', 'Pequeño Contribuyente', 'Pagas solo el 5% de lo que vendiste en el mes. Sin deducciones complicadas.'],
-    ['#60a5fa', 'Límite anual', '125 salarios mínimos ≈ Q 500,285/año (Decreto 31-2024). Si lo superas, cambias de régimen.'],
+    ['#2563eb', 'Límite anual', '125 salarios mínimos ≈ Q 500,285/año (Decreto 31-2024). Si lo superas, cambias de régimen.'],
     ['#a78bfa', 'Base legal', 'Decreto 27-92 Arts. 45-50 + Decreto 31-2024 (reforma 2024).'],
-    ['#6ee7b7', 'Cálculo', 'IVA = Ventas del mes × 5%. Se paga hasta el último día del mes siguiente.'],
-    ['#fbbf24', 'Formulario SAT-2046', 'Se llena en línea en portal.sat.gob.gt. Guarda siempre la constancia de pago.'],
-    ['#f9a8d4', 'LET obligatorio', 'El libro electrónico de ventas se presenta mensualmente en Agencia Virtual.'],
-    ['#fca5a5', 'Omisos y multas', 'Q 7.50/día · máx Q 150 por declaración · Rectificación Q 15. Declarar a tiempo siempre es más barato.'],
-    ['#67e8f9', 'Agencia Virtual', 'portal.sat.gob.gt — consulta, descarga y verifica todos tus formularios pagados.'],
+    ['#059669', 'Cálculo', 'IVA = Ventas del mes × 5%. Se paga hasta el último día del mes siguiente.'],
+    ['#ea580c', 'Formulario SAT-2046', 'Se llena en línea en portal.sat.gob.gt. Guarda siempre la constancia de pago.'],
+    ['#db2777', 'LET obligatorio', 'El libro electrónico de ventas se presenta mensualmente en Agencia Virtual.'],
+    ['#ef4444', 'Omisos y multas', 'Q 7.50/día · máx Q 150 por declaración · Rectificación Q 15. Declarar a tiempo siempre es más barato.'],
+    ['#0284c7', 'Agencia Virtual', 'portal.sat.gob.gt — consulta, descarga y verifica todos tus formularios pagados.'],
   ];
   return (
     <div style={{ ...SLIDE_BASE, background: t.bg }}>
@@ -881,7 +881,7 @@ const Slide23CasoPractico: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="ps-up ps-d3" style={{ ...panel('rgba(16,185,129,0.3)', 'rgba(16,185,129,0.07)'), flex: 1 }}>
             <div style={{ marginBottom: 14 }}>
-              <Tag label="Lo que debes resolver" color="#6ee7b7" />
+              <Tag label="Lo que debes resolver" color="#059669" />
             </div>
             <NumberedList color="#10b981" items={[
               'Suma todas las facturas. ¿Cuánto es el total de ventas?',
@@ -891,9 +891,9 @@ const Slide23CasoPractico: React.FC = () => {
               'Si pagas el 20 de diciembre, ¿hay multa? ¿Por qué?',
             ]} />
           </div>
-          <div className="ps-up ps-d8" style={{ ...panel('rgba(245,158,11,0.3)', 'rgba(245,158,11,0.07)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24', flexShrink: 0, marginTop: 6 }} />
-            <p style={{ color: '#fcd34d', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0, fontWeight: 600 }}>
+          <div className="ps-up ps-d8" style={{ ...panel('rgba(234,88,12,0.35)', 'rgba(234,88,12,0.08)'), display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c', flexShrink: 0, marginTop: 6 }} />
+            <p style={{ color: '#f97316', fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', margin: 0, fontWeight: 600 }}>
               El plazo para el IVA de noviembre vence el 31 de diciembre (último día del mes siguiente).
             </p>
           </div>
