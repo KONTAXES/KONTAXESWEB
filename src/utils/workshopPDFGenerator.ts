@@ -227,7 +227,7 @@ export async function generateWorkshopPDF(): Promise<void> {
 
   let y = 22;
   y = sectionHeading(y, '1. Generalidades del Pequeño Contribuyente');
-  y = infoBox(y, '¿Quién es el Pequeño Contribuyente? Persona individual o jurídica cuyas ventas anuales no superan Q500,000. Tributa únicamente IVA a tasa reducida del 5% sobre el total de ventas. Base legal: Decreto 27-92, Artículos 47 y 48 de la Ley del IVA.');
+  y = infoBox(y, '¿Quién es el Pequeño Contribuyente? Persona individual o jurídica cuyas ventas anuales no superan ~Q500,000 (125 salarios mínimos anuales, Decreto 31-2024). Tributa únicamente IVA a tasa reducida del 5% sobre el total de ventas. Base legal: Decreto 27-92, Artículos 45-50 de la Ley del IVA.');
 
   y = bullet(y, 'No paga ISR por este régimen (impuesto sobre la renta separado)');
   y = bullet(y, 'Emite facturas FEL (Factura Electrónica en Línea) ante SAT');
@@ -243,8 +243,8 @@ export async function generateWorkshopPDF(): Promise<void> {
   y = table(y,
     ['Situación', 'Acción requerida'],
     [
-      ['Ventas ≤ Q500,000 / año', 'Permanece como Pequeño Contribuyente'],
-      ['Ventas > Q500,000 en algún mes', 'Cambio de régimen en 30 días'],
+      ['Ventas ≤ ~Q500,000 / año', 'Permanece como Pequeño Contribuyente'],
+      ['Ventas > ~Q500,000 en algún mes', 'Cambio de régimen en ese período'],
       ['No notifica el cambio', 'Multa + recargo por evasión'],
     ],
     [110, 66],
@@ -274,7 +274,7 @@ export async function generateWorkshopPDF(): Promise<void> {
       title: 'Reglamento del IVA (Acuerdo 311-97)',
       items: [
         'Regula el procedimiento de declaración y pago',
-        'Define los plazos: del 1 al 15 de cada mes',
+        'Define los plazos: hasta el último día calendario del mes siguiente',
         'Establece la forma de llevar el libro de ventas',
       ],
     },
@@ -344,7 +344,7 @@ export async function generateWorkshopPDF(): Promise<void> {
     [50, 90, 36],
   );
 
-  y = infoBox(y, 'Verificación: Q13,150.00 × 0.05 = Q657.50 · Plazo de pago: del 1 al 15 de noviembre 2024 · Formulario: SAT-2046', EMERALD);
+  y = infoBox(y, 'Verificación: Q13,150.00 × 0.05 = Q657.50 · Plazo de pago: hasta el 30 de noviembre 2024 (último día del mes siguiente) · Formulario: SAT-2046', EMERALD);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PAGE 5 — Formulario SAT-2046
