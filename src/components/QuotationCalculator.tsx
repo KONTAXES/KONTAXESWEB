@@ -9,13 +9,13 @@ import {
   QuotationData, QuotationResult,
   ServiceType, Contribuyente, Regimen, Alcance, CertFEL,
   OdooSubtype, OutsourcingRole, AccesoPlan,
-  AdminSubService, ConsultoriaSubService,
+  AdminSubService, ConsultoriaSubService, PaginasWebSub,
   calculateQuotation, calculateOutsourcingQuotation, calculateAccesoQuotation,
   buildFormSummary, buildWAText,
   isContabilidadObligatoria, needsActivosQuestion,
   REGIMEN_LABEL, SERVICE_LABEL, FORMS,
   OUTSOURCING_ROLE_LABEL, ACCESO_PLANS, PRICE_USUARIO_ADICIONAL, KTX_MODULES,
-  ADMIN_SUB_LABEL, CONSULTORIA_SUB_LABEL,
+  ADMIN_SUB_LABEL, CONSULTORIA_SUB_LABEL, PAGINAS_WEB_SUB_LABEL,
 } from '../utils/quotationLogic';
 import { sendQuotationEmail } from '../utils/emailService';
 
@@ -33,6 +33,7 @@ type StepId =
   | 'odoo-subtype' | 'odoo-modulos'
   | 'implementacion'
   | 'acceso-plan' | 'acceso-usuarios'
+  | 'paginas-web-sub'
   | 'contact' | 'contact-service';
 
 function getActiveSteps(form: QuotationData): StepId[] {
@@ -41,6 +42,14 @@ function getActiveSteps(form: QuotationData): StepId[] {
 
   /* ── Contact-only services ── */
   if (['auditoria', 'legales'].includes(form.serviceType)) {
+    s.push('contact-service');
+    return s;
+  }
+
+  /* ── Páginas Web ── */
+  if (form.serviceType === 'paginas-web') {
+    s.push('paginas-web-sub');
+    if (!form.paginasWebSub) return s;
     s.push('contact-service');
     return s;
   }
@@ -127,6 +136,7 @@ function getActiveSteps(form: QuotationData): StepId[] {
 function getTotalSteps(form: QuotationData): number {
   if (!form.serviceType) return 2;
   if (['auditoria', 'legales'].includes(form.serviceType)) return 2;
+  if (form.serviceType === 'paginas-web') return 3;
   if (form.serviceType === 'admin-financiero' || form.serviceType === 'consultoria-fiscal') return 3;
   if (form.serviceType === 'odoo') {
     if (form.odooSubtype === 'modulos-ktx') return 3;
@@ -197,6 +207,7 @@ const EMPTY: QuotationData = {
   alcance: '', contabilidadCompleta: null, planillaIGSS: null,
   presentacionImpuestos: null, certFEL: '', whatsappFEL: null,
   outsourcingRole: '',
+  paginasWebSub: '',
   adminSubService: '', consultoriaSubService: '',
   odooSubtype: '', implementacionChoice: '', accesoPlan: '', accesoUsuariosAdicionales: -1,
   nombre: '', empresa: '', whatsapp: '', correo: '',
@@ -242,6 +253,7 @@ export function QuotationCalculator() {
   const sOutsourcingRole = (v: OutsourcingRole) => setForm(p => ({ ...p, outsourcingRole: v }));
   const sAdminSubService = (v: AdminSubService) => setForm(p => ({ ...p, adminSubService: v }));
   const sConsultoriaSubService = (v: ConsultoriaSubService) => setForm(p => ({ ...p, consultoriaSubService: v }));
+  const sPaginasWebSub = (v: PaginasWebSub) => setForm(p => ({ ...p, paginasWebSub: v }));
   const sOdooSubtype   = (v: OdooSubtype) => setForm(p => ({ ...p, odooSubtype: v, implementacionChoice: '', accesoPlan: '', accesoUsuariosAdicionales: -1 }));
   const sImplementacionChoice = (v: 'acceso' | 'partner') => setForm(p => ({ ...p, implementacionChoice: v, accesoPlan: '', accesoUsuariosAdicionales: -1 }));
   const sAccesoPlan    = (v: AccesoPlan) => setForm(p => ({ ...p, accesoPlan: v, accesoUsuariosAdicionales: 0 }));
@@ -333,11 +345,12 @@ export function QuotationCalculator() {
       case 'odoo-subtype':    return form.odooSubtype;
       case 'implementacion':  return form.implementacionChoice;
       case 'acceso-plan':     return form.accesoPlan;
+      case 'paginas-web-sub': return form.paginasWebSub;
       default: return null;
     }
   })();
   const hasVal = currentVal !== null && currentVal !== '';
-  const canContinue = hasVal && stepId !== 'contact' && stepId !== 'contact-service' && stepId !== 'odoo-modulos' && idx < steps.length - 1;
+  const canContinue = hasVal && stepId !== 'contact' && stepId !== 'contact-service' && stepId !== 'odoo-modulos' && stepId !== 'paginas-web-sub' && idx < steps.length - 1;
 
   /* ── Step renderers ───────────────────────────────────────────── */
 
@@ -353,6 +366,7 @@ export function QuotationCalculator() {
           ['outsourcing',         'Outsourcing'],
           ['odoo',                'Odoo'],
           ['legales',             'Servicios Legales'],
+          ['paginas-web',         'Páginas Web'],
         ] as [ServiceType, string][]).map(([v, label]) => (
           <Opt key={v} label={label}
             selected={form.serviceType === v}
@@ -380,6 +394,23 @@ export function QuotationCalculator() {
             <PhoneIcon size={15} /> Contactar a LEXUM por WhatsApp
           </a>
           <p className="text-xs text-gray-600 mt-4">📞 3240-6009 · 5179-1610</p>
+        </div>
+      );
+    }
+
+    /* Páginas Web → WhatsApp */
+    if (svc === 'paginas-web') {
+      const subLabel = form.paginasWebSub ? PAGINAS_WEB_SUB_LABEL[form.paginasWebSub as PaginasWebSub] : 'Páginas Web';
+      return (
+        <div>
+          <p className="text-gray-300 text-sm font-semibold mb-1">Páginas Web</p>
+          <p className="text-purple-300 text-base font-bold mb-4">{subLabel}</p>
+          <p className="text-gray-500 text-xs mb-5">Cada proyecto es único. Cuéntanos tu idea y te preparamos una propuesta personalizada.</p>
+          <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola KONTAXES, me interesa cotizar: ${subLabel}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/25 transition-all text-sm w-full">
+            <PhoneIcon size={15} /> Contactar por WhatsApp
+          </a>
         </div>
       );
     }
@@ -440,6 +471,20 @@ export function QuotationCalculator() {
           <Opt key={v} label={label}
             selected={form.outsourcingRole === v}
             onClick={() => pick(() => sOutsourcingRole(v))} />
+        ))}
+      </div>
+    </>
+  );
+
+  /* ── Páginas Web sub-type ── */
+  const stepPaginasWebSub = () => (
+    <>
+      <Q question="¿Qué tipo de desarrollo necesitas?" hint="Selecciona la categoría más cercana a tu proyecto." />
+      <div className="space-y-2">
+        {(Object.entries(PAGINAS_WEB_SUB_LABEL) as [PaginasWebSub, string][]).map(([v, label]) => (
+          <Opt key={v} label={label}
+            selected={form.paginasWebSub === v}
+            onClick={() => pick(() => sPaginasWebSub(v))} />
         ))}
       </div>
     </>
@@ -769,8 +814,9 @@ export function QuotationCalculator() {
     switch (stepId) {
       case 'service-type':    return stepServiceType();
       case 'contact-service': return stepContactService();
-      case 'outsourcing-role': return stepOutsourcingRole();
-      case 'admin-sub':        return stepAdminSub();
+      case 'outsourcing-role':  return stepOutsourcingRole();
+      case 'paginas-web-sub':   return stepPaginasWebSub();
+      case 'admin-sub':         return stepAdminSub();
       case 'consultoria-sub':  return stepConsultoriaSub();
       case 'odoo-subtype':    return stepOdooSubtype();
       case 'odoo-modulos':    return stepOdooModulos();

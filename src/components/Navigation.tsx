@@ -9,6 +9,7 @@ interface NavigationProps {
 const menuItems = [
   { label: 'Servicios',  id: 'servicios'  },
   { label: 'Cotizador',  id: 'cotizador'  },
+  { label: 'Recursos',   id: 'recursos'   },
   { label: 'Equipo',     id: 'equipo'     },
   { label: 'Clientes',   id: 'clientes'   },
   { label: 'Alianzas',   id: 'alianzas'   },

@@ -5,7 +5,10 @@ export type ServiceType =
   | 'consultoria-fiscal'
   | 'outsourcing'
   | 'odoo'
-  | 'legales';
+  | 'legales'
+  | 'paginas-web';
+
+export type PaginasWebSub = 'paginas-web' | 'aplicaciones-web' | 'desarrollos-medida';
 
 export type OdooSubtype       = 'modulos-ktx' | 'acceso' | 'implementacion';
 export type OutsourcingRole   = 'auxiliar' | 'analista' | 'junior' | 'senior';
@@ -39,6 +42,8 @@ export interface QuotationData {
   implementacionChoice: 'acceso' | 'partner' | '';
   accesoPlan: AccesoPlan | '';
   accesoUsuariosAdicionales: number; // -1 = no respondido
+  // Páginas Web
+  paginasWebSub: PaginasWebSub | '';
   // Contact
   nombre?: string;
   empresa?: string;
@@ -81,6 +86,13 @@ export const SERVICE_LABEL: Record<ServiceType, string> = {
   outsourcing:          'Outsourcing',
   odoo:                 'Odoo',
   legales:              'Servicios Legales',
+  'paginas-web':        'Páginas Web',
+};
+
+export const PAGINAS_WEB_SUB_LABEL: Record<PaginasWebSub, string> = {
+  'paginas-web':       'Páginas Web',
+  'aplicaciones-web':  'Aplicaciones Web',
+  'desarrollos-medida': 'Desarrollos a la Medida',
 };
 
 export const OUTSOURCING_ROLE_LABEL: Record<OutsourcingRole, string> = {
