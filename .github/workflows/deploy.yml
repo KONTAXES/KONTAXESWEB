@@ -25,20 +25,40 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SA_ADMIN_PASSWORD: ${{ secrets.VITE_SA_ADMIN_PASSWORD }}
 
-      - name: Install lftp
-        run: sudo apt-get install -y lftp
+      - name: Package dist
+        run: cd dist && zip -r ../deploy.zip .
 
-      - name: Deploy via SFTP
+      - name: Upload to cPanel via HTTPS API
         env:
-          SFTP_HOST: ${{ secrets.FTP_SERVER }}
-          SFTP_USER: ${{ secrets.FTP_USERNAME }}
-          SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          CPANEL_HOST: ${{ secrets.FTP_SERVER }}
+          CPANEL_USER: ${{ secrets.FTP_USERNAME }}
+          CPANEL_PASS: ${{ secrets.FTP_PASSWORD }}
         run: |
-          lftp -e "
-            set sftp:connect-program 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null';
-            set net:timeout 30;
-            set net:max-retries 3;
-            open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_HOST;
-            mirror -R --delete --verbose ./dist/ public_html/;
-            quit
-          "
+          echo "Uploading deploy.zip to public_html..."
+          UPLOAD=$(curl -k --fail --max-time 120 --silent \
+            -u "${CPANEL_USER}:${CPANEL_PASS}" \
+            -F "dir=/public_html" \
+            -F "file-1=@deploy.zip" \
+            "https://${CPANEL_HOST}:2083/execute/Fileman/upload_files")
+          echo "Upload: $UPLOAD"
+
+          echo "Extracting zip on server..."
+          EXTRACT=$(curl -k --fail --max-time 60 --silent \
+            -u "${CPANEL_USER}:${CPANEL_PASS}" \
+            -X POST \
+            --data-urlencode "dir=/public_html" \
+            --data-urlencode "files[0]=deploy.zip" \
+            --data-urlencode "type=zip" \
+            "https://${CPANEL_HOST}:2083/execute/Fileman/extract_file")
+          echo "Extract: $EXTRACT"
+
+          echo "Removing zip..."
+          curl -k --max-time 30 --silent \
+            -u "${CPANEL_USER}:${CPANEL_PASS}" \
+            -X POST \
+            --data-urlencode "dir=/public_html" \
+            --data-urlencode "files[0]=deploy.zip" \
+            --data-urlencode "discard_trash=1" \
+            "https://${CPANEL_HOST}:2083/execute/Fileman/delete_files"
+
+          echo "Deploy complete!"
