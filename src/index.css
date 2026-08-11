@@ -76,6 +76,12 @@
 ::-webkit-scrollbar-track { background: #030712; }
 ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 3px; }
 
+/* Spinner for SA portal */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* Animate fade in */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
