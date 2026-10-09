@@ -7,6 +7,7 @@ import { QuotationCalculator } from './components/QuotationCalculator';
 import { Team } from './components/Team';
 import { Clients } from './components/Clients';
 import { Alianzas } from './components/Alianzas';
+import { Capacitaciones } from './components/Capacitaciones';
 import { Footer } from './components/Footer';
 import { GlobalBackground } from './components/GlobalBackground';
 import { Recursos } from './components/Recursos';
@@ -54,6 +55,7 @@ export function App() {
         <Team />
         <Clients />
         <Alianzas />
+        <Capacitaciones />
         <Footer />
       </div>
 

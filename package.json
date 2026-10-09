@@ -10,14 +10,16 @@
     "preview": "npx vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.2",
+    "@emotion/react": "^11.13.3",
+    "@supabase/supabase-js": "^2.117.3",
     "@types/three": "^0.185.0",
+    "gsap": "^3.15.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide-react": "0.522.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.2",
+    "react-router-dom": "^7.18.4",
     "three": "^0.185.0"
   },
   "devDependencies": {
