@@ -13,6 +13,8 @@ import { GlobalBackground } from './components/GlobalBackground';
 import { Recursos } from './components/Recursos';
 import { PresentationViewer } from './components/PresentationViewer';
 import { PequenioContribuyenteSlides } from './components/slides/PequenioContribuyenteSlides';
+import { OdooIntroduccionSlides } from './components/slides/OdooIntroduccionSlides';
+import { OdooVentasSlides } from './components/slides/OdooVentasSlides';
 import { generateWorkshopPDF } from './utils/workshopPDFGenerator';
 
 const PRESENTATIONS: Record<string, { slides: React.FC[]; title: string; subtitle: string }> = {
@@ -20,6 +22,16 @@ const PRESENTATIONS: Record<string, { slides: React.FC[]; title: string; subtitl
     slides: PequenioContribuyenteSlides,
     title: 'Declaración de Impuestos',
     subtitle: 'Pequeño Contribuyente',
+  },
+  'odoo-introduccion': {
+    slides: OdooIntroduccionSlides,
+    title: 'Introducción a Odoo 19',
+    subtitle: 'Guía de Usuario · KTX LAB',
+  },
+  'odoo-ventas-crm': {
+    slides: OdooVentasSlides,
+    title: 'CRM · Ventas · Suscripciones · Alquiler',
+    subtitle: 'Módulos Comerciales · Odoo 19 · KTX LAB',
   },
 };
 

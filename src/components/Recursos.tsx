@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { PlayCircleIcon, BookOpenIcon, ClockIcon, UsersIcon, StarIcon, LockIcon, LinkIcon, CheckIcon, ExternalLinkIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { PlayCircleIcon, BookOpenIcon, ClockIcon, UsersIcon, StarIcon, LockIcon } from 'lucide-react';
 
 interface RecursosProps {
   isDark: boolean;
@@ -19,7 +18,6 @@ interface Course {
   available: boolean;
   badge?: string;
   socialProgram?: boolean;
-  href?: string; // internal link for guide-based courses
 }
 
 const courses: Course[] = [
@@ -140,7 +138,6 @@ const courses: Course[] = [
     topics: ['Interfaz de Odoo', 'Vistas y navegación', 'Búsqueda avanzada', 'Formularios', 'Actividades', 'Módulos esenciales'],
     available: true,
     badge: 'Disponible',
-    href: '/capacitaciones/odoo/guias-usuario',
   },
   {
     id: 'odoo-ventas-crm',
@@ -154,7 +151,6 @@ const courses: Course[] = [
     topics: ['CRM y pipeline', 'Gestión de ventas', 'Cotizaciones', 'Suscripciones', 'Alquiler'],
     available: true,
     badge: 'Disponible',
-    href: '/capacitaciones/odoo/guias-usuario',
   },
 ];
 
@@ -233,19 +229,8 @@ function CourseCard({
   isDark: boolean;
   onOpen: (id: string) => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
   const cardBg = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.95)';
-
-  function copyLink() {
-    const url = course.href
-      ? `${window.location.origin}${course.href}`
-      : window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
 
   return (
     <div
@@ -373,37 +358,7 @@ function CourseCard({
         </div>
 
         {/* CTA */}
-        {course.available && course.href ? (
-          <div className="flex gap-2">
-            <Link
-              to={course.href}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 no-underline"
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #10b981)',
-                color: '#fff',
-                boxShadow: '0 4px 20px rgba(124,58,237,0.35)',
-              }}
-            >
-              <ExternalLinkIcon size={15} />
-              Ver guía
-            </Link>
-            <button
-              onClick={copyLink}
-              title="Copiar enlace"
-              className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl text-xs font-semibold transition-all duration-200"
-              style={{
-                background: copied
-                  ? 'rgba(16,185,129,0.15)'
-                  : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-                border: `1px solid ${copied ? 'rgba(16,185,129,0.35)' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                color: copied ? '#10b981' : isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
-              }}
-            >
-              {copied ? <CheckIcon size={14} /> : <LinkIcon size={14} />}
-              {copied ? 'Copiado' : 'Enlace'}
-            </button>
-          </div>
-        ) : course.available ? (
+        {course.available ? (
           <button
             onClick={() => onOpen(course.id)}
             className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"

@@ -146,13 +146,10 @@ export function GuiasOdoo19() {
               </a>
             </div>
 
-            {/* Client card */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, background: '#fff', borderRadius: 10, padding: '14px 20px', maxWidth: 680 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: T.muted, whiteSpace: 'nowrap' }}>PREPARADO PARA</span>
-                <img src={`${BASE}/cliente-logo.png`} alt="Logo del cliente" style={{ height: 32, objectFit: 'contain' }} />
-              </div>
-              <p style={{ fontSize: 12, color: T.muted, margin: 0 }}>
+            {/* KTX LAB attribution */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 18px', maxWidth: 480 }}>
+              <img src={`${BASE}/ktxlab-simbolo-blanco.png`} alt="KTX LAB" style={{ height: 22, objectFit: 'contain', opacity: 0.7 }} />
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
                 Material elaborado y patrocinado por KTX LAB · Versión 2.0 · Octubre 2026
               </p>
             </div>
